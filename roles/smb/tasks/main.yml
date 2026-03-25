@@ -1,0 +1,25 @@
+---
+- name: Add samba user
+  ansible.builtin.user:
+    name: nas
+    state: present
+    system: true
+    shell: /usr/sbin/nologin
+
+- name: Set samba password for user
+  ansible.builtin.shell: >
+    (echo "{{ vault_smb_password }}"; echo "{{ vault_smb_password }}") | smbpasswd -s -a nas
+  changed_when: false
+  no_log: true
+
+- name: Add storage share to smb.conf
+  ansible.builtin.blockinfile:
+    path: /etc/samba/smb.conf
+    block: |
+      [data]
+      path = /mnt/storage/data
+      read-only = no
+      browsable = yes
+      writeable = yes
+    marker: "# {mark} ANSIBLE MANAGED - storage share"
+  notify: Restart smbd

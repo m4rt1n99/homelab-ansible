@@ -1,0 +1,22 @@
+---
+- name: Check if storage-pool exists
+  ansible.builtin.command: zpool list storage-pool
+  register: zpool_check
+  changed_when: false
+  failed_when: false
+
+- name: Create mirrored zfs pool
+  ansible.builtin.command: zpool create -m /mnt/storage storage-pool mirror /dev/sdb /dev/sdc
+  when: zpool_check.rc != 0
+  
+- name: Create zfs dataset
+  community.general.zfs:
+    name: storage-pool/data
+    state: present
+
+- name: Set permissions for zfs dataset
+  ansible.builtin.file:
+    path: /mnt/storage/data
+    owner: nas
+    group: nas
+    mode: '0755'
