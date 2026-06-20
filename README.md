@@ -12,6 +12,7 @@ I chose ansible for the ease of deployment of new services, simple syntax, and p
 - Updates the system packages and prepares for upcoming roles
 - Sets up samba sharing using a dedicated user
 - Sets up mirrored zfs pool on two HDDs
+- Installs and manages hdd-spindown for automatic HDD standby
 
 ## Setup
 See [SETUP.md](SETUP.md) for the full setup and run instructions.
@@ -20,7 +21,6 @@ See [SETUP.md](SETUP.md) for the full setup and run instructions.
 - Navidrome
 - Immich
 - Jellyfin
-- [hdd-spindown.sh](https://github.com/lynix/hdd-spindown.sh)
   
 ## License
 See [LICENSE](LICENSE).

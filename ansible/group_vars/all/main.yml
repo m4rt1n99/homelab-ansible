@@ -1,0 +1,9 @@
+---
+
+# HDD spindown configuration
+hdd_spindown_enabled: true
+hdd_spindown_devices:
+  - device: "/dev/disk/by-partuuid/{{ vault_zfs_disk1_partuuid }}"
+    timeout: 5400
+  - device: "/dev/disk/by-partuuid/{{ vault_zfs_disk2_partuuid }}"
+    timeout: 5400

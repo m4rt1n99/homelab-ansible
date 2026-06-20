@@ -1,0 +1,7 @@
+---
+hdd_spindown_interval: 300
+hdd_spindown_syslog: 0
+hdd_spindown_readlen: 128
+hdd_spindown_force_sata: 0
+hdd_spindown_hosts: []
+hdd_spindown_devices: []

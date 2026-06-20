@@ -1,0 +1,78 @@
+---
+- name: Validate required hdd-spindown settings
+  ansible.builtin.assert:
+    that:
+      - hdd_spindown_devices | length > 0
+    fail_msg: "Set hdd_spindown_devices before enabling the hdd_spindown role."
+  when: (hdd_spindown_enabled | default(false)) | bool
+
+- name: Install hdd-spindown dependencies
+  become: true
+  ansible.builtin.apt:
+    name:
+      - hdparm
+      - smartmontools
+      - iputils-ping
+    state: present
+    update_cache: true
+    cache_valid_time: 86400
+  when: (hdd_spindown_enabled | default(false)) | bool
+
+- name: Install hdd-spindown script
+  become: true
+  ansible.builtin.copy:
+    src: hdd-spindown.sh
+    dest: /usr/local/bin/hdd-spindown.sh
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart hdd-spindown
+  when: (hdd_spindown_enabled | default(false)) | bool
+
+- name: Install hdd-spindown config
+  become: true
+  ansible.builtin.template:
+    src: hdd-spindown.rc.j2
+    dest: /etc/hdd-spindown.rc
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart hdd-spindown
+  when: (hdd_spindown_enabled | default(false)) | bool
+
+- name: Install hdd-spindown systemd service
+  become: true
+  ansible.builtin.template:
+    src: hdd-spindown.service.j2
+    dest: /etc/systemd/system/hdd-spindown.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart hdd-spindown
+  when: (hdd_spindown_enabled | default(false)) | bool
+
+- name: Check if hdd-spindown unit exists
+  become: true
+  ansible.builtin.stat:
+    path: /etc/systemd/system/hdd-spindown.service
+  register: hdd_spindown_unit
+
+- name: Ensure hdd-spindown service is enabled and running
+  become: true
+  ansible.builtin.systemd:
+    name: hdd-spindown.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: (hdd_spindown_enabled | default(false)) | bool
+
+- name: Ensure hdd-spindown service is disabled when not enabled
+  become: true
+  ansible.builtin.systemd:
+    name: hdd-spindown.service
+    enabled: false
+    state: stopped
+    daemon_reload: true
+  when:
+    - not ((hdd_spindown_enabled | default(false)) | bool)
+    - hdd_spindown_unit.stat.exists

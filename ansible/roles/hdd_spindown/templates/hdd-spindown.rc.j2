@@ -1,0 +1,23 @@
+# Managed by Ansible
+# Configuration file for hdd-spindown.sh
+
+CONF_DEV=(
+{% for dev in hdd_spindown_devices %}
+  '{{ dev.device | regex_replace("^/dev/", "") }}|{{ dev.timeout }}'{% if not loop.last %} \
+{% endif %}
+{% endfor %}
+)
+
+{% if hdd_spindown_hosts | length > 0 %}
+CONF_HOSTS=(
+{% for host in hdd_spindown_hosts %}
+  '{{ host }}'{% if not loop.last %} \
+{% endif %}
+{% endfor %}
+)
+
+{% endif %}
+CONF_INT={{ hdd_spindown_interval }}
+CONF_SYSLOG={{ hdd_spindown_syslog }}
+CONF_READLEN={{ hdd_spindown_readlen }}
+CONF_FORCE_SATA={{ hdd_spindown_force_sata }}
