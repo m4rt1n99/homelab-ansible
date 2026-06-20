@@ -1,16 +1,42 @@
-# 1. Create the ansible user
-- `sudo useradd -m -s /bin/bash ansible`
+# Setup
 
-# 2. Set up SSH key auth
-- `sudo mkdir -p /home/ansible/.ssh` 
-- `sudo cp ~/.ssh/authorized_keys /home/ansible/.ssh/authorized_keys  # or paste your public key`
-- `sudo chown -R ansible:ansible /home/ansible/.ssh`
-- `sudo chmod 700 /home/ansible/.ssh`
-- `sudo chmod 600 /home/ansible/.ssh/authorized_keys`
+1. Create the ansible user.
 
-# 3. Passwordless sudo
-- `echo 'ansible ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/ansible`
-- `sudo chmod 440 /etc/sudoers.d/ansible`
+```bash
+sudo useradd -m -s /bin/bash ansible
+```
 
-# 4. Disable password login for this user
-- `sudo passwd -l ansible`
+2. Set up SSH key auth.
+
+```bash
+sudo mkdir -p /home/ansible/.ssh
+sudo cp ~/.ssh/authorized_keys /home/ansible/.ssh/authorized_keys # or paste your public key
+sudo chown -R ansible:ansible /home/ansible/.ssh
+sudo chmod 700 /home/ansible/.ssh
+sudo chmod 600 /home/ansible/.ssh/authorized_keys
+```
+
+3. Set up passwordless sudo.
+
+```bash
+echo 'ansible ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/ansible
+sudo chmod 440 /etc/sudoers.d/ansible
+```
+
+4. Disable password login for this user.
+
+```bash
+sudo passwd -l ansible
+```
+
+5. Decrypt the vault
+
+```bash
+ansible-vault decrypt group_vars/all/vault.yml
+```
+
+6. Run the playbook from the ansible directory.
+
+```bash
+ansible-playbook main.yml
+```

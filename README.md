@@ -1,4 +1,4 @@
-# My Homelab in ansible
+# Raspberry Pi Homelab
 The purpose of this repo is to share my local homelab setup. While mainly NAS focused, I'm always looking for software and other tools that can benefit my quality of life.
 I chose ansible for the ease of deployment of new services, simple syntax, and prior experience.
 
@@ -14,14 +14,13 @@ I chose ansible for the ease of deployment of new services, simple syntax, and p
 - Sets up mirrored zfs pool on two HDDs
 
 ## Setup
-1. Setup the user as described in [SETUP.md](SETUP.md)
-2. Run the playbook using `ansible-playbook -i inventory/hosts.yml site.yml `
+See [SETUP.md](SETUP.md) for the full setup and run instructions.
 
 ## TODO
-- Setup Navidrome
- - Write a python script to retreive music to store in the local navidrome library
-- Setup Immich
-- Add [hdd-spindown.sh](https://github.com/lynix/hdd-spindown.sh) to the setup role
+- Navidrome
+- Immich
+- Jellyfin
+- [hdd-spindown.sh](https://github.com/lynix/hdd-spindown.sh)
   
 ## License
 See [LICENSE](LICENSE).
