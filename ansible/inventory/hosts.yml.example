@@ -12,4 +12,6 @@ all:
           os_family: Debian
           host_roles:
             - common
+            - smb
+            - zfs
           hostname: my-host
