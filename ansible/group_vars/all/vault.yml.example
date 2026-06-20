@@ -1,3 +1,7 @@
 ---
 # Encrypt this file with: ansible-vault encrypt group_vars/all/vault.yml
 vault_smb_password: "CHANGE_ME"
+
+# Replace these with the actual PARTUUIDs of the disks you want to use for the ZFS pool. You can find them using `lsblk -o NAME,PARTUUID` on the target host.
+vault_zfs_disk1_partuuid: "CHANGE_ME"
+vault_zfs_disk2_partuuid: "CHANGE_ME"
