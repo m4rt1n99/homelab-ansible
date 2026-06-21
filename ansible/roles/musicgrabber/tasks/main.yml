@@ -13,11 +13,12 @@
     src: musicgrabber.container.j2
     dest: /etc/containers/systemd/musicgrabber.container
     mode: '0644'
-  notify: Restart musicgrabber
+  notify:
+    - Reload systemd
+    - Restart musicgrabber
 
-- name: Reload systemd
-  ansible.builtin.systemd:
-    daemon_reload: true
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
 
 - name: Start musicgrabber service
   ansible.builtin.systemd:
