@@ -1,0 +1,28 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/services/
+
+- Music:
+    - Navidrome:
+        icon: navidrome.png
+        href: "{{ base_url }}:{{ service_ports.navidrome }}"
+        description: Music library
+        widget:
+          type: navidrome
+          url: "{{ base_url }}:{{ service_ports.navidrome }}"
+          user: admin
+          token: {{ navidrome_token }}
+          salt: {{ navidrome_salt }}
+    - MusicGrabber:
+        icon: sh-music-grabber.png
+        href: "{{ base_url }}:{{ service_ports.musicgrabber }}"
+        description: Music downloader
+        siteMonitor: "{{ base_url }}:{{ service_ports.musicgrabber }}"
+    - Slskd:
+        icon: slskd.png
+        href: "{{ base_url }}:{{ service_ports.slskd }}"
+        description: Soulseek client
+        widget:
+          type: slskd
+          url: "{{ base_url }}:{{ service_ports.slskd }}"
+          key: {{ slskd_api_key }}

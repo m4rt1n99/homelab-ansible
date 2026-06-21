@@ -1,0 +1,50 @@
+---
+- name: Compute Navidrome Subsonic API token
+  ansible.builtin.set_fact:
+    navidrome_token: "{{ (navidrome_password ~ navidrome_salt) | hash('md5') }}"
+
+- name: Create homepage directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/nvme/services/homepage
+    - /mnt/nvme/services/homepage/config
+
+- name: Deploy homepage container Quadlet
+  ansible.builtin.template:
+    src: homepage.container.j2
+    dest: /etc/containers/systemd/homepage.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart homepage
+
+- name: Deploy homepage config
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "/mnt/nvme/services/homepage/config/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - { src: homepage-services.yaml.j2, dest: services.yaml }
+    - { src: homepage-settings.yaml.j2, dest: settings.yaml }
+    - { src: homepage-custom.css.j2, dest: custom.css }
+  notify: Restart homepage
+
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
+
+- name: Start homepage service
+  ansible.builtin.systemd:
+    name: homepage
+    state: started
+    enabled: true
+
+- name: Allow homepage port through UFW
+  community.general.ufw:
+    rule: allow
+    route: true   # published port is DNAT'd to the container; routed via FORWARD, not INPUT
+    port: "{{ service_ports.homepage }}"
+    proto: tcp
+  notify: Reload ufw
