@@ -1,1 +1,2 @@
 ansible/inventory/hosts.yml
+ansible/.ansible_vault_pass
