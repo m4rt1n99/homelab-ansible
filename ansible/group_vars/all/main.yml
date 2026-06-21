@@ -1,4 +1,28 @@
 ---
+# API keys
+slskd_api_key: "{{ vault_slskd_api_key }}"
+
+# Login Credentials
+smb_password: "{{ vault_smb_password }}"
+soulseek_username: "{{ vault_soulseek_username }}"
+soulseek_password: "{{ vault_soulseek_password }}"
+slskd_username: "{{ vault_slskd_username }}"
+slskd_password: "{{ vault_slskd_password }}"
+navidrome_username: "{{ vault_navidrome_username }}"
+navidrome_password: "{{ vault_navidrome_password }}"
+
+# Replace this with the actual UUID of the NVMe drive you want to use for the ZFS pool. You can find it using `lsblk -o NAME,UUID` on the target host.
+nvme_uuid: "{{ vault_nvme_uuid }}"
+
+# Replace these with the actual PARTUUIDs of the disks you want to use for the ZFS pool. You can find them using `lsblk -o NAME,PARTUUID` on the target host.
+zfs_disk1_partuuid: "{{ vault_zfs_disk1_partuuid }}"
+zfs_disk2_partuuid: "{{ vault_zfs_disk2_partuuid }}"
+
+# Services
+service_ports:
+  musicgrabber: 8080
+  slskd: 5030
+  navidrome: 4453
 
 # HDD spindown configuration
 hdd_spindown_enabled: true
