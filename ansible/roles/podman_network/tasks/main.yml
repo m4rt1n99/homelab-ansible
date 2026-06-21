@@ -1,0 +1,31 @@
+---
+- name: Install Podman
+  ansible.builtin.apt:
+    name:
+      - podman
+      - uidmap
+      - slirp4netns
+    state: present
+    update_cache: true
+  become: true
+
+- name: Ensure Quadlet directory exists
+  ansible.builtin.file:
+    path: /etc/containers/systemd
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: Allow traffic from Podman containers to host
+  community.general.ufw:
+    rule: allow
+    from_ip: 10.88.0.0/14
+    comment: Podman containers to host (DNS, node_exporter, etc.)
+  notify: Reload ufw
+
+- name: Deploy vps-services network Quadlet
+  ansible.builtin.template:
+    src: vps-services.network.j2
+    dest: /etc/containers/systemd/vps-services.network
+    mode: '0644'
+  notify: Reload systemd
