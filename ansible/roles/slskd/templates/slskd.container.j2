@@ -1,0 +1,18 @@
+[Unit]
+Description=Slskd - Soulseek Daemon
+
+[Container]
+Image=docker.io/slskd/slskd:latest
+ContainerName=slskd
+Network=vps-services.network
+
+PublishPort=5030:{{ service_ports.slskd }}
+PublishPort=5031:5031
+PublishPort=50300:50300
+
+Volume=/mnt/nvme/slskd:/app
+Volume=/mnt/nvme/media/slskd_downloads:/downloads
+
+Environment=SLSKD_DOWNLOADS_DIR=/downloads
+[Install]
+WantedBy=multi-user.target default.target

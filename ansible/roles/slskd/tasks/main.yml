@@ -1,0 +1,35 @@
+---
+- name: Create slskd directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/nvme/slskd
+
+- name: Deploy slskd container Quadlet
+  ansible.builtin.template:
+    src: slskd.container.j2
+    dest: /etc/containers/systemd/slskd.container
+    mode: '0644'
+  notify: Restart slskd
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Start slskd service
+  ansible.builtin.systemd:
+    name: slskd
+    state: started
+    enabled: true
+
+- name: Deploy slskd config
+  ansible.builtin.blockinfile:
+    path: /mnt/nvme/slskd/slskd.yml
+    create: true
+    mode: '0644'
+    insertafter: EOF
+    marker: "# {mark} ANSIBLE MANAGED BLOCK slskd"
+    block: "{{ lookup('template', 'slskd-config.yml.j2') }}"
+  notify: Restart slskd

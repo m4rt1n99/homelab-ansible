@@ -1,0 +1,6 @@
+---
+- name: Restart musicgrabber
+  ansible.builtin.systemd:
+    name: musicgrabber
+    state: restarted
+  become: true

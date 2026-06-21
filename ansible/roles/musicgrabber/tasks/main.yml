@@ -1,0 +1,26 @@
+---
+- name: Create musicgrabber directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/nvme/musicgrabber
+    - /mnt/nvme/musicgrabber/data
+
+- name: Deploy musicgrabber container Quadlet
+  ansible.builtin.template:
+    src: musicgrabber.container.j2
+    dest: /etc/containers/systemd/musicgrabber.container
+    mode: '0644'
+  notify: Restart musicgrabber
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Start musicgrabber service
+  ansible.builtin.systemd:
+    name: musicgrabber
+    state: started
+    enabled: true

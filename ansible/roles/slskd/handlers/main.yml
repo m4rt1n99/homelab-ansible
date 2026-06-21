@@ -1,0 +1,6 @@
+---
+- name: Restart slskd
+  ansible.builtin.systemd:
+    name: slskd
+    state: restarted
+  become: true

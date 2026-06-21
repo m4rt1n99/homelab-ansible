@@ -1,0 +1,33 @@
+[Unit]
+Description=Musicgrabber - Music acquisition service
+
+[Container]
+Image=docker.io/g33kphr33k/musicgrabber:latest
+ContainerName=musicgrabber
+Network=vps-services.network
+PublishPort=38274:38274
+PublishPort=8080:{{ service_ports.musicgrabber }}
+
+Environment=DEFAULT_CONVERT_TO_FLAC=true
+
+Environment=NAVIDROME_URL=http://navidrome:{{ service_ports.navidrome }}
+Environment=NAVIDROME_USER={{ navidrome_username }}
+Environment=NAVIDROME_PASS={{ navidrome_password }}
+
+Environment=SOURCE_SOULSEEK_ENABLED=true
+Environment=SLSKD_URL=http://slskd:{{ service_ports.slskd }}
+Environment=SLSKD_USER={{ slskd_username }}
+Environment=SLSKD_PASS={{ slskd_password }}
+Environment=SLSKD_DOWNLOADS_PATH=/downloads
+
+Environment=SOURCE_YOUTUBE_ENABLED=false
+Environment=SOURCE_MP3PHOENIX_ENABLED=false
+Environment=SOURCE_SOUNDCLOUD_ENABLED=false
+Environment=SOURCE_ZVU4NO_ENABLED=false
+
+Volume=/mnt/nvme/media/music:/music
+Volume=/mnt/nvme/musicgrabber/data:/data
+Volume=/mnt/nvme/media/slskd_downloads:/downloads
+
+[Install]
+WantedBy=multi-user.target default.target

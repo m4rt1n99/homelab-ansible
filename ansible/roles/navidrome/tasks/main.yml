@@ -1,0 +1,26 @@
+---
+- name: Create navidrome directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/nvme/navidrome
+    - /mnt/nvme/navidrome/data
+
+- name: Deploy navidrome container Quadlet
+  ansible.builtin.template:
+    src: navidrome.container.j2
+    dest: /etc/containers/systemd/navidrome.container
+    mode: '0644'
+  notify: Restart navidrome
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Start navidrome service
+  ansible.builtin.systemd:
+    name: navidrome
+    state: started
+    enabled: true

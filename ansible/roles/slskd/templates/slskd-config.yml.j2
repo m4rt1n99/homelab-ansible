@@ -1,0 +1,15 @@
+web:
+  authentication:
+    disabled: false
+    username: {{ slskd_username }}
+    password: {{ slskd_password }}
+    api_keys:
+      api_key:
+        key: {{ slskd_api_key }}
+        role: readwrite # readonly, readwrite, administrator
+
+soulseek:
+  address: vps.slsknet.org
+  port: 2271
+  username: {{ soulseek_username }}
+  password: {{ soulseek_password }}
