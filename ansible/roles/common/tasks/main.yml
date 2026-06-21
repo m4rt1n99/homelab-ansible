@@ -10,5 +10,66 @@
   become: true
   apt:
     name:
+      - ufw
       - samba
       - zfsutils-linux
+
+- name: Mount NVMe disk
+  ansible.builtin.mount:
+    src: "/dev/disk/by-uuid/{{ nvme_uuid }}"
+    path: "/mnt/nvme"
+    fstype: "ext4"
+    opts: "defaults,nofail"
+    state: mounted
+
+# UFW configuration tasks
+- name: Configure UFW defaults
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+    state: enabled
+
+- name: Allow SSH
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: Allow specific external ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "{{ service_ports.musicgrabber }}"
+    - "{{ service_ports.slskd }}"
+    - "{{ service_ports.navidrome }}"
+
+- name: Configure UFW logging
+  community.general.ufw:
+    logging: low
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+
+# Cleanup and maintenance
+- name: Remove unnecessary packages
+  ansible.builtin.apt:
+    autoremove: true
+    autoclean: true
+
+- name: Create media directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/nvme/media
+    - /mnt/nvme/media/music
+
+- name: Create shared slskd download directory
+  ansible.builtin.file:
+    path: /mnt/nvme/media/slskd_downloads
+    state: directory
+    mode: '0777'

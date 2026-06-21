@@ -14,8 +14,8 @@
       - /mnt/storage
       - storage-pool
       - mirror
-      - "/dev/disk/by-partuuid/{{ vault_zfs_disk1_partuuid }}"
-      - "/dev/disk/by-partuuid/{{ vault_zfs_disk2_partuuid }}"
+      - "/dev/disk/by-partuuid/{{ zfs_disk1_partuuid }}"
+      - "/dev/disk/by-partuuid/{{ zfs_disk2_partuuid }}"
   when: zpool_check.rc != 0
   
 - name: Create zfs dataset

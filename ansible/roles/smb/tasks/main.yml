@@ -8,7 +8,7 @@
 
 - name: Set samba password for user
   ansible.builtin.shell: >
-    (echo "{{ vault_smb_password }}"; echo "{{ vault_smb_password }}") | smbpasswd -s -a nas
+    (echo "{{ smb_password }}"; echo "{{ smb_password }}") | smbpasswd -s -a nas
   changed_when: false
   no_log: true
 
