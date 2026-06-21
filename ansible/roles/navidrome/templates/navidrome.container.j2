@@ -6,7 +6,7 @@ Image=docker.io/deluan/navidrome:latest
 ContainerName=navidrome
 Network=vps-services.network
 PublishPort=4533:{{ service_ports.navidrome }}
-Volume=/mnt/nvme/navidrome/data:/data
+Volume=/mnt/nvme/services/navidrome/data:/data
 Volume=/mnt/nvme/media/music:/music
 
 [Install]

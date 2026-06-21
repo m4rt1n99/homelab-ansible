@@ -5,8 +5,8 @@
     state: directory
     mode: '0755'
   loop:
-    - /mnt/nvme/musicgrabber
-    - /mnt/nvme/musicgrabber/data
+    - /mnt/nvme/services/musicgrabber
+    - /mnt/nvme/services/musicgrabber/data
 
 - name: Deploy musicgrabber container Quadlet
   ansible.builtin.template:

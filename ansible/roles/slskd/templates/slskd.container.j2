@@ -10,7 +10,7 @@ PublishPort=5030:{{ service_ports.slskd }}
 PublishPort=5031:5031
 PublishPort=50300:50300
 
-Volume=/mnt/nvme/slskd:/app
+Volume=/mnt/nvme/services/slskd:/app
 Volume=/mnt/nvme/media/slskd_downloads:/downloads
 
 Environment=SLSKD_DOWNLOADS_DIR=/downloads

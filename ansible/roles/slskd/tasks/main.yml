@@ -5,7 +5,7 @@
     state: directory
     mode: '0755'
   loop:
-    - /mnt/nvme/slskd
+    - /mnt/nvme/services/slskd
 
 - name: Deploy slskd container Quadlet
   ansible.builtin.template:
@@ -27,7 +27,7 @@
 
 - name: Deploy slskd config
   ansible.builtin.blockinfile:
-    path: /mnt/nvme/slskd/slskd.yml
+    path: /mnt/nvme/services/slskd/slskd.yml
     create: true
     mode: '0644'
     insertafter: EOF

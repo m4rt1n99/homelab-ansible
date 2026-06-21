@@ -5,8 +5,8 @@
     state: directory
     mode: '0755'
   loop:
-    - /mnt/nvme/navidrome
-    - /mnt/nvme/navidrome/data
+    - /mnt/nvme/services/navidrome
+    - /mnt/nvme/services/navidrome/data
 
 - name: Deploy navidrome container Quadlet
   ansible.builtin.template:
