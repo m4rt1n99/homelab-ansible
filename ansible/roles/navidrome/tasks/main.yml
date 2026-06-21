@@ -29,6 +29,7 @@
 - name: Allow navidrome port through UFW
   community.general.ufw:
     rule: allow
+    route: true   # published port is DNAT'd to the container; routed via FORWARD, not INPUT
     port: "{{ service_ports.navidrome }}"
     proto: tcp
   notify: Reload ufw

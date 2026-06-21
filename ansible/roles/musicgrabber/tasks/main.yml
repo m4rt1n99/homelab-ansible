@@ -29,6 +29,7 @@
 - name: Allow musicgrabber ports through UFW
   community.general.ufw:
     rule: allow
+    route: true   # published ports are DNAT'd to the container; routed via FORWARD, not INPUT
     port: "{{ item }}"
     proto: tcp
   loop:
