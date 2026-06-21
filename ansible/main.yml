@@ -7,3 +7,11 @@
       ansible.builtin.include_role:
         name: "{{ item }}"
       loop: "{{ host_roles | default([]) }}"
+  # Generic handlers shared by all roles. Service-specific restart handlers
+  handlers:
+    - name: Reload ufw
+      community.general.ufw:
+        state: reloaded
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true

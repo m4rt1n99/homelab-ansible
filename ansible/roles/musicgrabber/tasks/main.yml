@@ -24,3 +24,13 @@
     name: musicgrabber
     state: started
     enabled: true
+
+- name: Allow musicgrabber ports through UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "{{ service_ports.musicgrabber }}"   # web UI
+    - "38274"
+  notify: Reload ufw

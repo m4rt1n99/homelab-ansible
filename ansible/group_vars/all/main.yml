@@ -22,7 +22,7 @@ zfs_disk2_partuuid: "{{ vault_zfs_disk2_partuuid }}"
 service_ports:
   musicgrabber: 8080
   slskd: 5030
-  navidrome: 4453
+  navidrome: 4533
 
 # HDD spindown configuration
 hdd_spindown_enabled: true

@@ -24,3 +24,10 @@
     name: navidrome
     state: started
     enabled: true
+
+- name: Allow navidrome port through UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ service_ports.navidrome }}"
+    proto: tcp
+  notify: Reload ufw

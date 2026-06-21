@@ -23,11 +23,10 @@
     state: mounted
 
 # UFW configuration tasks
-- name: Configure UFW defaults
+- name: Configure UFW default incoming policy
   community.general.ufw:
     direction: incoming
     policy: deny
-    state: enabled
 
 - name: Allow SSH
   community.general.ufw:
@@ -35,16 +34,7 @@
     port: "22"
     proto: tcp
 
-- name: Allow specific external ports
-  community.general.ufw:
-    rule: allow
-    port: "{{ item }}"
-    proto: tcp
-  loop:
-    - "{{ service_ports.musicgrabber }}"
-    - "{{ service_ports.slskd }}"
-    - "{{ service_ports.navidrome }}"
-
+# Per-service ports are opened by each service role, so a host only opens ports for the roles it actually runs
 - name: Configure UFW logging
   community.general.ufw:
     logging: low

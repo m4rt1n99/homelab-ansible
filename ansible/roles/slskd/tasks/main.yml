@@ -33,3 +33,13 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK slskd"
     block: "{{ lookup('template', 'slskd-config.yml.j2') }}"
   notify: Restart slskd
+
+- name: Allow slskd ports through UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "{{ service_ports.slskd }}"   # web UI
+    - "50300"                       # Soulseek peer/listen port
+  notify: Reload ufw
