@@ -1,2 +1,2 @@
 ansible/inventory/hosts.yml
-ansible/.ansible_vault_pass
+ansible/group_vars/all/main.yml
