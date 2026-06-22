@@ -12,14 +12,26 @@
   changed_when: false
   no_log: true
 
-- name: Add storage share to smb.conf
+- name: Add shares to smb.conf
   ansible.builtin.blockinfile:
     path: /etc/samba/smb.conf
     block: |
-      [data]
+      [Storage]
       path = /mnt/storage/data
+      read-only = no
+      browsable = yes
+      writeable = yes
+      [Media]
+      path = /mnt/nvme/media
       read-only = no
       browsable = yes
       writeable = yes
     marker: "# {mark} ANSIBLE MANAGED - storage share"
   notify: Restart smbd
+
+- name: Allow smb ports through UFW
+  community.general.ufw:
+    rule: allow
+    port: 445
+    proto: tcp
+  notify: Reload ufw
