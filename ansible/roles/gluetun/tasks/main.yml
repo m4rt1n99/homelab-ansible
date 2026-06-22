@@ -1,0 +1,35 @@
+---
+
+- name: Create gluetun directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/nvme/services/gluetun   # /gluetun (VPN state)
+
+- name: Deploy gluetun container Quadlet
+  ansible.builtin.template:
+    src: gluetun.container.j2
+    dest: /etc/containers/systemd/gluetun.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart gluetun
+
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
+  
+- name: Start gluetun service
+  ansible.builtin.systemd:
+    name: gluetun
+    state: started
+    enabled: true
+
+- name: Allow qbittorrent WebUI port through UFW (published by gluetun)
+  community.general.ufw:
+    rule: allow
+    route: true   # published ports are DNAT'd to the container; routed via FORWARD, not INPUT
+    port: "{{ service_ports.qbittorrent }}"
+    proto: tcp
+  notify: Reload ufw

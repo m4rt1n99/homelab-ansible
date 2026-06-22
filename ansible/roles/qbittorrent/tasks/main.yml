@@ -1,0 +1,93 @@
+---
+
+- name: Create qbittorrent directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/nvme/services/qbittorrent         # /config
+    - /mnt/nvme/media/video/torrents/movies  # "movies" download category
+    - /mnt/nvme/media/video/torrents/tv      # "tv" download category
+
+- name: Deploy qbittorrent container Quadlet
+  ansible.builtin.template:
+    src: qbittorrent.container.j2
+    dest: /etc/containers/systemd/qbittorrent.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart qbittorrent
+
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
+
+- name: Start qbittorrent service
+  ansible.builtin.systemd:
+    name: qbittorrent
+    state: started
+    enabled: true
+
+- name: Wait for qBittorrent to generate config
+  ansible.builtin.wait_for:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    timeout: 60
+
+- name: Stop qbittorrent
+  ansible.builtin.systemd:
+    name: qbittorrent
+    state: stopped
+
+- name: Disable WebUI host header validation
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: Preferences
+    option: 'WebUI\HostHeaderValidation'
+    value: 'false'
+    no_extra_spaces: true
+    mode: '0644'
+
+- name: Generate qBittorrent WebUI password hash (PBKDF2-HMAC-SHA512)
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -c
+      - |
+        import hashlib, base64, sys
+        pw = sys.argv[1].encode()
+        salt = hashlib.sha256(pw).digest()[:16]
+        dk = hashlib.pbkdf2_hmac('sha512', pw, salt, 100000, dklen=64)
+        print('"@ByteArray(%s:%s)"' % (base64.b64encode(salt).decode(), base64.b64encode(dk).decode()))
+      - "{{ qbittorrent_password }}"
+  register: qbittorrent_pbkdf2
+  changed_when: false
+  no_log: true
+
+- name: Set qBittorrent WebUI password hash fact
+  ansible.builtin.set_fact:
+    qbittorrent_webui_password_hash: "{{ qbittorrent_pbkdf2.stdout }}"
+  no_log: true
+
+- name: Set username for qBittorrent WebUI
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: Preferences
+    option: 'WebUI\Username'
+    value: '{{ qbittorrent_username }}'
+    no_extra_spaces: true
+    mode: '0644'
+
+- name: Set password for qBittorrent WebUI
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: Preferences
+    option: 'WebUI\Password_PBKDF2'
+    value: '{{ qbittorrent_webui_password_hash }}'
+    no_extra_spaces: true
+    mode: '0644'
+  no_log: true
+
+- name: Start qbittorrent
+  ansible.builtin.systemd:
+    name: qbittorrent
+    state: started

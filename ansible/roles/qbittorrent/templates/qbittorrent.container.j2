@@ -1,0 +1,20 @@
+[Unit]
+Description=qBittorrent - Torrent download client (via gluetun VPN)
+Requires=gluetun.service
+After=gluetun.service
+
+[Container]
+Image=lscr.io/linuxserver/qbittorrent:latest
+ContainerName=qbittorrent
+# Route all traffic through the gluetun VPN container
+Network=container:gluetun
+
+Environment=UMASK=002
+Environment=TZ=Europe/Prague
+Environment=WEBUI_PORT={{ service_ports.qbittorrent }}
+
+Volume=/mnt/nvme/services/qbittorrent:/config
+Volume=/mnt/nvme/media/video:/data
+
+[Install]
+WantedBy=multi-user.target default.target
