@@ -56,7 +56,9 @@
     mode: '0755'
   loop:
     - /mnt/nvme/media
-    - /mnt/nvme/media/music
+    - /mnt/nvme/media/navidrome
+    - /mnt/nvme/media/jellyfin
+    - /mnt/nvme/media/immich
 
 - name: Create shared slskd download directory
   ansible.builtin.file:
