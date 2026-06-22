@@ -1,0 +1,6 @@
+---
+- name: Restart gluetun
+  ansible.builtin.systemd:
+    name: gluetun
+    state: restarted
+  become: true
