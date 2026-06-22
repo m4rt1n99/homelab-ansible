@@ -29,12 +29,9 @@ sudo chmod 440 /etc/sudoers.d/ansible
 sudo passwd -l ansible
 ```
 
-5. Save the password
-
-Write the password to the vault password file:
+5. Create and setup main.yml
 ```bash
-echo -n "THE_VAULT_PASSWORD" > ansible/.ansible_vault_pass
-chmod 600 ansible/.ansible_vault_pass
+cp group_vars/all/main.yml.example group_vars/all/main.yml
 ```
 
 6. Run the playbook from the ansible directory.
