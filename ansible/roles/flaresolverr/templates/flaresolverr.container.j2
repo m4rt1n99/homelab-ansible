@@ -1,0 +1,10 @@
+[Unit]
+Description=FlareSolverr - Captcha solver
+
+[Container]
+Image=ghcr.io/flaresolverr/flaresolverr:latest
+ContainerName=flaresolverr
+Network=vps-services.network
+
+[Install]
+WantedBy=multi-user.target default.target

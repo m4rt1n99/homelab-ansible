@@ -1,0 +1,18 @@
+---
+- name: Deploy flaresolverr container Quadlet
+  ansible.builtin.template:
+    src: flaresolverr.container.j2
+    dest: /etc/containers/systemd/flaresolverr.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart flaresolverr
+  
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
+
+- name: Start flaresolverr service
+  ansible.builtin.systemd:
+    name: flaresolverr
+    state: started
+    enabled: true

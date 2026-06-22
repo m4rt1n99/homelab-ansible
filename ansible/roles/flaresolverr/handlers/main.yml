@@ -1,0 +1,6 @@
+---
+- name: Restart flaresolverr
+  ansible.builtin.systemd:
+    name: flaresolverr
+    state: restarted
+  become: true
