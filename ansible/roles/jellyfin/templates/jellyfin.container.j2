@@ -1,0 +1,15 @@
+[Unit]
+Description=Jellyfin - Media server
+
+[Container]
+Image=docker.io/jellyfin/jellyfin:latest
+ContainerName=jellyfin
+Network=vps-services.network
+PublishPort=8096:{{ service_ports.jellyfin }}
+
+Volume=/mnt/nvme/media/jellyfin:/media
+Volume=/mnt/nvme/services/jellyfin/config:/config
+Volume=/mnt/nvme/services/jellyfin/cache:/cache
+
+[Install]
+WantedBy=multi-user.target default.target

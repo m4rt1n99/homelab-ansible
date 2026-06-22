@@ -1,0 +1,107 @@
+---
+- name: Create jellyfin directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/nvme/services/jellyfin
+    - /mnt/nvme/services/jellyfin/config
+    - /mnt/nvme/services/jellyfin/cache
+    - /mnt/nvme/services/jellyfin/config/root
+    - /mnt/nvme/services/jellyfin/config/root/default
+    - /mnt/nvme/services/jellyfin/config/root/default/Movies
+    - /mnt/nvme/services/jellyfin/config/root/default/Series
+
+- name: Deploy jellyfin container Quadlet
+  ansible.builtin.template:
+    src: jellyfin.container.j2
+    dest: /etc/containers/systemd/jellyfin.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart jellyfin
+
+- name: Deploy jellyfin config
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "/mnt/nvme/services/jellyfin/config/root/default/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - { src: jellyfin-movies-lib.xml.j2, dest: Movies/options.xml }
+    - { src: jellyfin-movies.mblink.j2, dest: Movies/media.mblink }
+    - { src: jellyfin-series-lib.xml.j2, dest: Series/options.xml }
+    - { src: jellyfin-series.mblink.j2, dest: Series/media.mblink }
+  notify: Restart jellyfin
+
+- name: Set library collection types
+  ansible.builtin.file:
+    path: "/mnt/nvme/services/jellyfin/config/root/default/{{ item }}"
+    state: touch
+    mode: '0644'
+  loop:
+    - Movies/movies.collection
+    - Series/tvshows.collection
+  notify: Restart jellyfin
+
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
+
+- name: Start jellyfin service
+  ansible.builtin.systemd:
+    name: jellyfin
+    state: started
+    enabled: true
+
+- name: Allow jellyfin ports through UFW
+  community.general.ufw:
+    rule: allow
+    route: true   # published ports are DNAT'd to the container; routed via FORWARD, not INPUT
+    port: "{{ service_ports.jellyfin }}"
+    proto: tcp
+  notify: Reload ufw
+
+- name: Wait for jellyfin to come up and read wizard state
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.jellyfin }}/System/Info/Public"
+    method: GET
+  register: jellyfin_public_info
+  retries: 30
+  delay: 10
+  until: jellyfin_public_info.status == 200
+
+- name: Complete jellyfin startup wizard
+  when: not (jellyfin_public_info.json.StartupWizardCompleted | default(false))
+  block:
+    - name: Set jellyfin startup configuration (language and region)
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/Configuration"
+        method: POST
+        body_format: json
+        body:
+          UICulture: "en-US"
+          MetadataCountryCode: "US"
+          PreferredMetadataLanguage: "en"
+        status_code: [200, 204]
+
+    - name: Prime jellyfin first-user wizard step
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/User"
+        method: GET
+        status_code: [200, 204]
+
+    - name: Create jellyfin admin user
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/User"
+        method: POST
+        body_format: json
+        body:
+          Name: "{{ jellyfin_username }}"
+          Password: "{{ jellyfin_password }}"
+        status_code: [200, 204]
+
+    - name: Mark jellyfin startup wizard as complete
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/Complete"
+        method: POST
+        status_code: [200, 204]

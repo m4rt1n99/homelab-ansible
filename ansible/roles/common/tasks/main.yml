@@ -58,6 +58,8 @@
     - /mnt/nvme/media
     - /mnt/nvme/media/navidrome
     - /mnt/nvme/media/jellyfin
+    - /mnt/nvme/media/jellyfin/movies
+    - /mnt/nvme/media/jellyfin/series
     - /mnt/nvme/media/immich
 
 - name: Create shared slskd download directory
