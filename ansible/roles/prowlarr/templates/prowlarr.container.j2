@@ -1,0 +1,18 @@
+[Unit]
+Description=Prowlarr - Indexer manager
+Wants=flaresolverr.service
+After=flaresolverr.service
+
+[Container]
+Image=lscr.io/linuxserver/prowlarr:latest
+ContainerName=prowlarr
+Network=vps-services.network
+PublishPort=9696:{{ service_ports.prowlarr }}
+
+Environment=UMASK=002
+Environment=TZ=Europe/Prague
+
+Volume=/mnt/nvme/services/prowlarr:/config
+
+[Install]
+WantedBy=multi-user.target default.target

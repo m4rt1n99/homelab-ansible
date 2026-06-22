@@ -1,0 +1,169 @@
+---
+
+- name: Create prowlarr directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/nvme/services/prowlarr
+
+- name: Deploy prowlarr container Quadlet
+  ansible.builtin.template:
+    src: prowlarr.container.j2
+    dest: /etc/containers/systemd/prowlarr.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart prowlarr
+
+- name: Deploy prowlarr config
+  ansible.builtin.template:
+    src: "prowlarr-config.xml.j2"
+    dest: "/mnt/nvme/services/prowlarr/config.xml"
+    mode: '0644'
+  notify: Restart prowlarr
+
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
+
+- name: Start prowlarr service
+  ansible.builtin.systemd:
+    name: prowlarr
+    state: started
+    enabled: true
+
+- name: Allow prowlarr port through UFW
+  community.general.ufw:
+    rule: allow
+    route: true   # published ports are DNAT'd to the container; routed via FORWARD, not INPUT
+    port: "{{ service_ports.prowlarr }}"
+    proto: tcp
+  notify: Reload ufw
+
+# --- Configure FlareSolverr indexer proxy via Prowlarr API ---
+- name: Wait for prowlarr API to be ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/system/status"
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    status_code: 200
+  register: prowlarr_status
+  until: prowlarr_status.status == 200
+  retries: 30
+  delay: 2
+
+- name: Get existing prowlarr tags
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/tag"
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    status_code: 200
+  register: prowlarr_tags
+
+- name: Create flaresolverr tag
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/tag"
+    method: POST
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    body_format: json
+    body:
+      label: flaresolverr
+    status_code: 201
+  register: prowlarr_flaresolverr_tag
+  when: prowlarr_tags.json | selectattr('label', 'equalto', 'flaresolverr') | list | length == 0
+
+- name: Resolve flaresolverr tag id
+  ansible.builtin.set_fact:
+    flaresolverr_tag_id: >-
+      {{ (prowlarr_tags.json | selectattr('label', 'equalto', 'flaresolverr') | map(attribute='id') | first)
+         if (prowlarr_flaresolverr_tag.skipped | default(false))
+         else prowlarr_flaresolverr_tag.json.id }}
+
+- name: Get existing prowlarr indexer proxies
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/indexerproxy"
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    status_code: 200
+  register: prowlarr_proxies
+
+- name: Add FlareSolverr indexer proxy
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/indexerproxy"
+    method: POST
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    body_format: json
+    body:
+      name: FlareSolverr
+      implementation: FlareSolverr
+      implementationName: FlareSolverr
+      configContract: FlareSolverrSettings
+      infoLink: "https://wiki.servarr.com/prowlarr/supported#flaresolverr"
+      tags: "{{ [flaresolverr_tag_id | int] }}"
+      fields:
+        - name: host
+          value: "http://flaresolverr:{{ service_ports.flaresolverr }}/"
+        - name: requestTimeout
+          value: 60
+    status_code: 201
+  when: prowlarr_proxies.json | selectattr('name', 'equalto', 'FlareSolverr') | list | length == 0
+
+# --- Provision indexers via Prowlarr API ---
+- name: Get available indexer definitions (schema)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/indexer/schema"
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    status_code: 200
+  register: prowlarr_schema
+  when: prowlarr_indexers | length > 0
+
+- name: Get existing prowlarr indexers
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/indexer"
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    status_code: 200
+  register: prowlarr_existing_indexers
+  when: prowlarr_indexers | length > 0
+
+- name: Validate requested indexers exist in the schema
+  ansible.builtin.assert:
+    that:
+      - prowlarr_schema.json | selectattr('name', 'regex', _name_re) | list | length > 0
+    fail_msg: >-
+      Indexer '{{ item.name }}' was not found in Prowlarr's definition schema.
+      List valid names with:
+      curl -s -H 'X-Api-Key: {{ prowlarr_api_key }}'
+      http://localhost:{{ service_ports.prowlarr }}/api/v1/indexer/schema | jq -r '.[].name' | sort
+  loop: "{{ prowlarr_indexers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    _name_re: "(?i)^{{ item.name | regex_escape }}$"
+  when: prowlarr_indexers | length > 0
+
+- name: Add prowlarr indexers
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/indexer"
+    method: POST
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    body_format: json
+    body: >-
+      {{ _schema | combine({
+           'enable': true,
+           'appProfileId': 1,
+           'tags': [flaresolverr_tag_id | int] if item.flaresolverr | default(false) else []
+         }) }}
+    status_code: 201
+  loop: "{{ prowlarr_indexers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    _name_re: "(?i)^{{ item.name | regex_escape }}$"
+    _schema: "{{ prowlarr_schema.json | selectattr('name', 'regex', _name_re) | first }}"
+  when: prowlarr_existing_indexers.json | selectattr('name', 'regex', _name_re) | list | length == 0
