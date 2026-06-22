@@ -9,7 +9,7 @@ PublishPort=4533:{{ service_ports.navidrome }}
 Volume=/mnt/nvme/services/navidrome/data:/data
 Volume=/mnt/nvme/media/navidrome:/music
 # Auto-creates the "admin" user on first boot (empty DB), skipping the setup wizard.
-Environment=ND_DEVAUTOCREATEADMINPASSWORD={{ vault_navidrome_password }}
+Environment=ND_DEVAUTOCREATEADMINPASSWORD={{ navidrome_password }}
 
 [Install]
 WantedBy=multi-user.target default.target
