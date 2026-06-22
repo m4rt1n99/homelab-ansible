@@ -12,6 +12,10 @@
     - /mnt/nvme/services/jellyfin/config/root/default
     - /mnt/nvme/services/jellyfin/config/root/default/Movies
     - /mnt/nvme/services/jellyfin/config/root/default/Series
+    # Shared video library that Radarr/Sonarr import into and Jellyfin reads
+    - /mnt/nvme/media/video/library
+    - /mnt/nvme/media/video/library/movies
+    - /mnt/nvme/media/video/library/tv
 
 - name: Deploy jellyfin container Quadlet
   ansible.builtin.template:

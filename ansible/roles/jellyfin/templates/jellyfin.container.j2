@@ -7,7 +7,7 @@ ContainerName=jellyfin
 Network=vps-services.network
 PublishPort=8096:{{ service_ports.jellyfin }}
 
-Volume=/mnt/nvme/media/jellyfin:/media
+Volume=/mnt/nvme/media/video/library:/media
 Volume=/mnt/nvme/services/jellyfin/config:/config
 Volume=/mnt/nvme/services/jellyfin/cache:/cache
 
