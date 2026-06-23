@@ -114,6 +114,33 @@
     no_extra_spaces: true
     mode: '0644'
 
+- name: Set qBittorrent global share ratio limit
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: BitTorrent
+    option: 'Session\GlobalMaxRatio'
+    value: '1'                  # stop seeding once upload/download ratio reaches 1:1
+    no_extra_spaces: true
+    mode: '0644'
+
+- name: Set qBittorrent global seeding time limit
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: BitTorrent
+    option: 'Session\GlobalMaxSeedingMinutes'
+    value: '1440'               # stop seeding after 1 day (whichever limit is hit first)
+    no_extra_spaces: true
+    mode: '0644'
+
+- name: Stop torrents when the share ratio or seeding time limit is reached
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: BitTorrent
+    option: 'Session\MaxRatioAction'
+    value: '0'                  # 0 = Stop torrent; Radarr/Sonarr then deletes it on cleanup
+    no_extra_spaces: true
+    mode: '0644'
+
 - name: Seed qBittorrent download categories
   ansible.builtin.template:
     src: qbittorrent-categories.json.j2

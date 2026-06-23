@@ -104,6 +104,7 @@
       enable: true
       protocol: "torrent"
       priority: 1
+      removeCompletedDownloads: true   # delete the torrent + data once qBittorrent finishes seeding
       implementation: "qBittorrent"
       configContract: "QBittorrentSettings"
       fields:
