@@ -6,7 +6,7 @@ Image=docker.io/g33kphr33k/musicgrabber:latest
 ContainerName=musicgrabber
 Network=vps-services.network
 PublishPort=38274:38274
-PublishPort=8080:{{ service_ports.musicgrabber }}
+PublishPort={{ service_ports.musicgrabber }}:8080
 
 Environment=DEFAULT_CONVERT_TO_FLAC=true
 

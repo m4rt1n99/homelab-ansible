@@ -5,7 +5,7 @@ Description=Homepage - Personal Dashboard
 Image=ghcr.io/gethomepage/homepage:latest
 ContainerName=homepage
 Network=vps-services.network
-PublishPort=3000:{{ service_ports.homepage }}
+PublishPort={{ service_ports.homepage }}:3000
 Volume=/mnt/nvme/services/homepage/config:/app/config
 Environment=HOMEPAGE_ALLOWED_HOSTS=*
 [Install]

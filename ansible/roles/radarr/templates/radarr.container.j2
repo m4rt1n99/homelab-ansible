@@ -6,7 +6,7 @@ Image=lscr.io/linuxserver/radarr:latest
 ContainerName=radarr
 Network=vps-services.network
 
-PublishPort=7878:{{ service_ports.radarr }}
+PublishPort={{ service_ports.radarr }}:7878
 Environment=PUID={{ media_puid }}
 Environment=PGID={{ media_pgid }}
 Environment=UMASK=002

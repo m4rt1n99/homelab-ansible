@@ -6,7 +6,7 @@ Image=lscr.io/linuxserver/sonarr:latest
 ContainerName=sonarr
 Network=vps-services.network
 
-PublishPort=8989:{{ service_ports.sonarr }}
+PublishPort={{ service_ports.sonarr }}:8989
 Environment=PUID={{ media_puid }}
 Environment=PGID={{ media_pgid }}
 Environment=UMASK=002

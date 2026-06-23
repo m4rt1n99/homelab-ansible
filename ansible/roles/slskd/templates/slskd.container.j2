@@ -6,7 +6,7 @@ Image=docker.io/slskd/slskd:latest
 ContainerName=slskd
 Network=vps-services.network
 
-PublishPort=5030:{{ service_ports.slskd }}
+PublishPort={{ service_ports.slskd }}:5030
 PublishPort=5031:5031
 PublishPort=50300:50300
 

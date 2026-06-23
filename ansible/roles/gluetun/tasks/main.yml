@@ -30,6 +30,6 @@
   community.general.ufw:
     rule: allow
     route: true   # published ports are DNAT'd to the container; routed via FORWARD, not INPUT
-    port: "{{ service_ports.qbittorrent }}"
+    port: "{{ service_ports.qbittorrent_published }}"
     proto: tcp
   notify: Reload ufw

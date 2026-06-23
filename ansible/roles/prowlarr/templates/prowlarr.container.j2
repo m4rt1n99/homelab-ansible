@@ -7,7 +7,7 @@ After=flaresolverr.service
 Image=lscr.io/linuxserver/prowlarr:latest
 ContainerName=prowlarr
 Network=vps-services.network
-PublishPort=9696:{{ service_ports.prowlarr }}
+PublishPort={{ service_ports.prowlarr }}:9696
 
 Environment=UMASK=002
 Environment=TZ=Europe/Prague

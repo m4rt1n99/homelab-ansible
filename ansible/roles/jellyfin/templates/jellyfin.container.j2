@@ -5,7 +5,7 @@ Description=Jellyfin - Media server
 Image=docker.io/jellyfin/jellyfin:latest
 ContainerName=jellyfin
 Network=vps-services.network
-PublishPort=8096:{{ service_ports.jellyfin }}
+PublishPort={{ service_ports.jellyfin }}:8096
 
 Volume=/mnt/nvme/media/video/library:/media
 Volume=/mnt/nvme/services/jellyfin/config:/config

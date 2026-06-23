@@ -8,7 +8,7 @@ Network=vps-services.network
 AddCapability=NET_ADMIN
 AddDevice=/dev/net/tun:/dev/net/tun
 
-PublishPort=8081:{{ service_ports.qbittorrent }}
+PublishPort={{ service_ports.qbittorrent_published }}:{{ service_ports.qbittorrent }}
 
 Environment=VPN_SERVICE_PROVIDER=mullvad
 Environment=VPN_TYPE=wireguard
