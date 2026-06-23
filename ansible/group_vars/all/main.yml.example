@@ -26,25 +26,51 @@ nvme_uuid: "CHANGE_ME"
 zfs_disk1_partuuid: "CHANGE_ME"
 zfs_disk2_partuuid: "CHANGE_ME"
 
+# linuxserver.io container user (user 'abc' inside the containers).
+# All arr/download containers share /mnt/nvme/media/video for hardlinks, so they
+# must run as the same uid/gid and that uid/gid must own the media tree on the host.
 media_puid: 1000
 media_pgid: 1000
 
 # Services
 base_url: "http://CHANGE_ME"
 
+# service_ports.<name> is the PUBLIC (host) port a service is published on.
+# Container-to-container traffic uses the container name + the app's internal
+# port, not these values, so the two only differ when the host port is taken
+# (see qbittorrent below).
 service_ports:
   homepage: 3000
   musicgrabber: 8080
   slskd: 5030
   navidrome: 4533
   jellyfin: 8096
-  # qbittorrent shares gluetun's network
+  # qbittorrent runs inside gluetun's network namespace: it listens on 8080
+  # internally, and gluetun publishes it on the host as qbittorrent_published
+  # (8080 is already taken on the host by musicgrabber).
   qbittorrent: 8080
+  qbittorrent_published: 8081
   prowlarr: 9696
+  flaresolverr: 8191
   radarr: 7878
   sonarr: 8989
   bazarr: 6767
 
+
+# Prowlarr indexers to provision.
+prowlarr_min_seeders: 10
+
+prowlarr_indexers:
+  - name: "YTS"
+  - name: "The Pirate Bay"
+  - name: "1337x"
+    flaresolverr: true
+  - name: "LimeTorrents"
+    flaresolverr: true
+  - name: "Magnet Cat"
+    flaresolverr: true
+  - name: "EZTV"
+    flaresolverr: true
 
 # VPN configuration
 vpn_wireguard_private_key: "CHANGE_ME"
