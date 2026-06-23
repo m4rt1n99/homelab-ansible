@@ -203,6 +203,14 @@
       | selectattr('value', 'defined') | selectattr('value', 'equalto', prowlarr_min_seeders | int)
       | list | length == 0
 
+- name: Get existing prowlarr applications
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/applications"
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    status_code: 200
+  register: prowlarr_existing_applications
+
 - name: Add Radarr application
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/applications"
@@ -226,3 +234,29 @@
            ]
          } }}
     status_code: 201
+  when: prowlarr_existing_applications.json | selectattr('name', 'equalto', 'Radarr') | list | length == 0
+
+- name: Add Sonarr application
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/applications"
+    method: POST
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    body_format: json
+    body: >-
+      {{ {
+           'name': "Sonarr",
+           'implementation': "Sonarr",
+           'implementationName': "Sonarr",
+           'configContract': "SonarrSettings",
+           'syncLevel': 'fullSync',
+           'tags': [],
+           'fields': [
+             {'name': 'prowlarrUrl', 'value': 'http://prowlarr:' ~ service_ports.prowlarr},
+             {'name': 'baseUrl', 'value': 'http://sonarr:' ~ service_ports.sonarr},
+             {'name': 'apiKey', 'value': sonarr_api_key},
+             {'name': 'syncCategories', 'value': [5000, 5010, 5020, 5030, 5040, 5045, 5050, 5060, 5070, 5080, 5090]}
+           ]
+         } }}
+    status_code: 201
+  when: prowlarr_existing_applications.json | selectattr('name', 'equalto', 'Sonarr') | list | length == 0

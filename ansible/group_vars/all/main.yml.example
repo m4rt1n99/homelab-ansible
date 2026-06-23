@@ -3,6 +3,7 @@
 slskd_api_key: "CHANGE_ME"
 prowlarr_api_key: "CHANGE_ME"
 radarr_api_key: "CHANGE_ME"
+sonarr_api_key: "CHANGE_ME"
 
 # Login Credentials
 smb_password: "CHANGE_ME"
