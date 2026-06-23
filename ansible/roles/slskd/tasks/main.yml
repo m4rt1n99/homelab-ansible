@@ -1,11 +1,22 @@
 ---
-- name: Create slskd directories
+# Owned by the slskd container user (PUID/PGID) so slskd can write its database.
+- name: Create slskd config directory
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: /mnt/nvme/services/slskd
     state: directory
+    owner: "{{ media_puid }}"
+    group: "{{ media_pgid }}"
+    recurse: true
     mode: '0755'
-  loop:
-    - /mnt/nvme/services/slskd
+
+- name: Create shared slskd download directory
+  ansible.builtin.file:
+    path: /mnt/nvme/media/slskd_downloads   # mounted into the container as /downloads
+    state: directory
+    owner: "{{ media_puid }}"
+    group: "{{ media_pgid }}"
+    recurse: true
+    mode: '0755'
 
 - name: Deploy slskd container Quadlet
   ansible.builtin.template:

@@ -14,5 +14,7 @@ Volume=/mnt/nvme/services/slskd:/app
 Volume=/mnt/nvme/media/slskd_downloads:/downloads
 
 Environment=SLSKD_DOWNLOADS_DIR=/downloads
+Environment=PUID={{ media_puid }}
+Environment=PGID={{ media_pgid }}
 [Install]
 WantedBy=multi-user.target default.target
