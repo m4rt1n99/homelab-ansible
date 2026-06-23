@@ -2,6 +2,7 @@
 # API keys
 slskd_api_key: "CHANGE_ME"
 prowlarr_api_key: "CHANGE_ME"
+radarr_api_key: "CHANGE_ME"
 
 # Login Credentials
 smb_password: "CHANGE_ME"
@@ -23,6 +24,9 @@ nvme_uuid: "CHANGE_ME"
 # Replace these with the actual PARTUUIDs of the disks you want to use for the ZFS pool. You can find them using `lsblk -o NAME,PARTUUID` on the target host.
 zfs_disk1_partuuid: "CHANGE_ME"
 zfs_disk2_partuuid: "CHANGE_ME"
+
+media_puid: 1000
+media_pgid: 1000
 
 # Services
 base_url: "http://CHANGE_ME"

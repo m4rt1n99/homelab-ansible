@@ -55,9 +55,7 @@
     state: directory
     mode: '0755'
   loop:
-    - /mnt/nvme/media
     - /mnt/nvme/media/navidrome
-    - /mnt/nvme/media/jellyfin
     - /mnt/nvme/media/jellyfin/movies
     - /mnt/nvme/media/jellyfin/series
     - /mnt/nvme/media/immich
@@ -66,4 +64,7 @@
   ansible.builtin.file:
     path: /mnt/nvme/media/slskd_downloads
     state: directory
-    mode: '0777'
+    owner: "{{ media_puid }}"
+    group: "{{ media_pgid }}"
+    recurse: true
+    mode: '0755'

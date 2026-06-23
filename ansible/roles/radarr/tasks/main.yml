@@ -1,0 +1,119 @@
+---
+
+- name: Create radarr config directory
+  ansible.builtin.file:
+    path: /mnt/nvme/services/radarr
+    state: directory
+    mode: '0755'
+
+# Owned by the lsio container user (PUID/PGID) so Radarr can write the root folders.
+- name: Create radarr media directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ media_puid }}"
+    group: "{{ media_pgid }}"
+    recurse: true
+    mode: '0755'
+  loop:
+    - /mnt/nvme/media/video/torrents/movies
+    - /mnt/nvme/media/video/library/movies
+
+- name: Deploy radarr container Quadlet
+  ansible.builtin.template:
+    src: radarr.container.j2
+    dest: /etc/containers/systemd/radarr.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart radarr
+
+- name: Deploy radarr config
+  ansible.builtin.template:
+    src: "radarr-config.xml.j2"
+    dest: "/mnt/nvme/services/radarr/config.xml"
+    mode: '0644'
+  notify: Restart radarr
+
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
+- name: Start radarr service
+  ansible.builtin.systemd:
+    name: radarr
+    state: started
+    enabled: true
+    
+- name: Allow radarr port through UFW
+  community.general.ufw:
+    rule: allow
+    route: true
+    port: "{{ service_ports.radarr }}"
+    proto: tcp
+  notify: Reload ufw
+
+# --- Configure qBitTorrent ---
+- name: Wait for radarr API to be ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.radarr }}/api/v3/system/status"
+    headers:
+      X-Api-Key: "{{ radarr_api_key }}"
+    status_code: 200
+  register: radarr_status
+  until: radarr_status.status == 200
+  retries: 30
+  delay: 2
+
+- name: Get existing radarr download clients
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.radarr }}/api/v3/downloadclient"
+    headers:
+      X-Api-Key: "{{ radarr_api_key }}"
+    status_code: 200
+  register: radarr_download_clients
+
+- name: Add qbittorrent download client
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.radarr }}/api/v3/downloadclient"
+    method: POST
+    headers:
+      X-Api-Key: "{{ radarr_api_key }}"
+    body_format: json
+    body:
+      name: "qBittorrent"
+      enable: true
+      protocol: "torrent"
+      priority: 1
+      implementation: "qBittorrent"
+      configContract: "QBittorrentSettings"
+      fields:
+        - name: "host"
+          value: "gluetun"
+        - name: "port"
+          value: "{{ service_ports.qbittorrent }}"
+        - name: "username"
+          value: "{{ qbittorrent_username }}"
+        - name: "password"
+          value: "{{ qbittorrent_password }}"
+        - name: "movieCategory"
+          value: "movies"
+    status_code: 201
+  when: radarr_download_clients.json | selectattr('name', 'equalto', 'qBittorrent') | list | length == 0
+
+- name: Fix qbittorrent download client category
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.radarr }}/api/v3/downloadclient/{{ _existing.id }}"
+    method: PUT
+    headers:
+      X-Api-Key: "{{ radarr_api_key }}"
+    body_format: json
+    body: >-
+      {{ _existing | combine({'fields':
+           (_existing.fields | rejectattr('name', 'equalto', 'movieCategory') | list)
+           + [{'name': 'movieCategory', 'value': 'movies'}]
+         }) }}
+    status_code: 202
+  vars:
+    _existing: "{{ (radarr_download_clients.json | selectattr('name', 'equalto', 'qBittorrent') | list | first) | default({}) }}"
+  when:
+    - _existing | length > 0
+    - (_existing.fields | selectattr('name', 'equalto', 'movieCategory') | map(attribute='value') | first | default('')) != 'movies'

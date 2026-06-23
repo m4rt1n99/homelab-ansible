@@ -167,3 +167,62 @@
     _name_re: "(?i)^{{ item.name | regex_escape }}$"
     _schema: "{{ prowlarr_schema.json | selectattr('name', 'regex', _name_re) | first }}"
   when: prowlarr_existing_indexers.json | selectattr('name', 'regex', _name_re) | list | length == 0
+
+- name: Re-fetch prowlarr indexers
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/indexer"
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    status_code: 200
+  register: prowlarr_managed_indexers
+  when: prowlarr_indexers | length > 0
+
+- name: Enforce minimum seeders on prowlarr indexers
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/indexer/{{ item.id }}?forceSave=true"
+    method: PUT
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    body_format: json
+    body: >-
+      {{ item | combine({'fields':
+           (item.fields | rejectattr('name', 'equalto', _seed_field) | list)
+           + [(item.fields | selectattr('name', 'equalto', _seed_field) | first)
+              | combine({'value': prowlarr_min_seeders | int})]
+         }) }}
+    status_code: 202
+  loop: "{{ prowlarr_managed_indexers.json | default([]) }}"
+  loop_control:
+    label: "{{ item.name }} -> {{ prowlarr_min_seeders }}"
+  vars:
+    _seed_field: torrentBaseSettings.appMinimumSeeders
+  when:
+    - prowlarr_indexers | length > 0
+    - item.fields | selectattr('name', 'equalto', _seed_field) | list | length > 0
+    - item.fields | selectattr('name', 'equalto', _seed_field)
+      | selectattr('value', 'defined') | selectattr('value', 'equalto', prowlarr_min_seeders | int)
+      | list | length == 0
+
+- name: Add Radarr application
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/applications"
+    method: POST
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+    body_format: json
+    body: >-
+      {{ {
+           'name': "Radarr",
+           'implementation': "Radarr",
+           'implementationName': "Radarr",
+           'configContract': "RadarrSettings",
+           'syncLevel': 'fullSync',
+           'tags': [],
+           'fields': [
+             {'name': 'prowlarrUrl', 'value': 'http://prowlarr:' ~ service_ports.prowlarr},
+             {'name': 'baseUrl', 'value': 'http://radarr:' ~ service_ports.radarr},
+             {'name': 'apiKey', 'value': radarr_api_key},
+             {'name': 'syncCategories', 'value': [2000, 2010, 2020, 2030, 2040, 2045, 2050, 2060, 2070, 2080, 2090]}
+           ]
+         } }}
+    status_code: 201

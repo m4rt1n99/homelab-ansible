@@ -1,12 +1,20 @@
 ---
 
-- name: Create qbittorrent directories
+- name: Create qbittorrent config directory
+  ansible.builtin.file:
+    path: /mnt/nvme/services/qbittorrent     # /config
+    state: directory
+    mode: '0755'
+
+- name: Create qbittorrent media directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
+    owner: "{{ media_puid }}"
+    group: "{{ media_pgid }}"
+    recurse: true
     mode: '0755'
   loop:
-    - /mnt/nvme/services/qbittorrent         # /config
     - /mnt/nvme/media/video/torrents/movies  # "movies" download category
     - /mnt/nvme/media/video/torrents/tv      # "tv" download category
 
@@ -86,6 +94,30 @@
     no_extra_spaces: true
     mode: '0644'
   no_log: true
+
+- name: Set qBittorrent default save path
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: BitTorrent
+    option: 'Session\DefaultSavePath'
+    value: '/data/torrents'
+    no_extra_spaces: true
+    mode: '0644'
+
+- name: Enable qBittorrent automatic torrent management by default
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: BitTorrent
+    option: 'Session\DisableAutoTMMByDefault'
+    value: 'false'
+    no_extra_spaces: true
+    mode: '0644'
+
+- name: Seed qBittorrent download categories
+  ansible.builtin.template:
+    src: qbittorrent-categories.json.j2
+    dest: /mnt/nvme/services/qbittorrent/qBittorrent/categories.json
+    mode: '0644'
 
 - name: Start qbittorrent
   ansible.builtin.systemd:
