@@ -184,24 +184,20 @@
     headers:
       X-Api-Key: "{{ prowlarr_api_key }}"
     body_format: json
-    body: >-
-      {{ item | combine({'fields':
-           (item.fields | rejectattr('name', 'equalto', _seed_field) | list)
-           + [(item.fields | selectattr('name', 'equalto', _seed_field) | first)
-              | combine({'value': prowlarr_min_seeders | int})]
-         }) }}
+    body: "{{ item | combine({'fields': _other_fields + [_updated_seed_field]}) }}"
     status_code: 202
   loop: "{{ prowlarr_managed_indexers.json | default([]) }}"
   loop_control:
     label: "{{ item.name }} -> {{ prowlarr_min_seeders }}"
   vars:
     _seed_field: torrentBaseSettings.appMinimumSeeders
+    _seed_entries: "{{ item.fields | selectattr('name', 'equalto', _seed_field) | list }}"
+    _other_fields: "{{ item.fields | rejectattr('name', 'equalto', _seed_field) | list }}"
+    _updated_seed_field: "{{ _seed_entries[0] | default({}) | combine({'value': prowlarr_min_seeders | int}) }}"
   when:
     - prowlarr_indexers | length > 0
-    - item.fields | selectattr('name', 'equalto', _seed_field) | list | length > 0
-    - item.fields | selectattr('name', 'equalto', _seed_field)
-      | selectattr('value', 'defined') | selectattr('value', 'equalto', prowlarr_min_seeders | int)
-      | list | length == 0
+    - _seed_entries | length > 0
+    - _seed_entries[0].value | default(None) != (prowlarr_min_seeders | int)
 
 - name: Get existing prowlarr applications
   ansible.builtin.uri:
