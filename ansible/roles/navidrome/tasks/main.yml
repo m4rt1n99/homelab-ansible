@@ -8,6 +8,12 @@
     - /mnt/nvme/services/navidrome
     - /mnt/nvme/services/navidrome/data
 
+- name: Create navidrome music library directory
+  ansible.builtin.file:
+    path: /mnt/nvme/media/navidrome   # mounted into the container as /music
+    state: directory
+    mode: '0755'
+
 - name: Deploy navidrome container Quadlet
   ansible.builtin.template:
     src: navidrome.container.j2

@@ -48,23 +48,3 @@
   ansible.builtin.apt:
     autoremove: true
     autoclean: true
-
-- name: Create media directories
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-  loop:
-    - /mnt/nvme/media/navidrome
-    - /mnt/nvme/media/jellyfin/movies
-    - /mnt/nvme/media/jellyfin/series
-    - /mnt/nvme/media/immich
-
-- name: Create shared slskd download directory
-  ansible.builtin.file:
-    path: /mnt/nvme/media/slskd_downloads
-    state: directory
-    owner: "{{ media_puid }}"
-    group: "{{ media_pgid }}"
-    recurse: true
-    mode: '0755'

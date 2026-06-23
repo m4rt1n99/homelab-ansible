@@ -37,6 +37,7 @@
 
 - name: Reload systemd to register new units
   ansible.builtin.meta: flush_handlers
+  
 - name: Start radarr service
   ansible.builtin.systemd:
     name: radarr
@@ -62,6 +63,26 @@
   until: radarr_status.status == 200
   retries: 30
   delay: 2
+
+- name: Get existing radarr root folders
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.radarr }}/api/v3/rootfolder"
+    headers:
+      X-Api-Key: "{{ radarr_api_key }}"
+    status_code: 200
+  register: radarr_root_folders
+
+- name: Add radarr movies root folder
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.radarr }}/api/v3/rootfolder"
+    method: POST
+    headers:
+      X-Api-Key: "{{ radarr_api_key }}"
+    body_format: json
+    body:
+      path: "/data/library/movies"
+    status_code: 201
+  when: radarr_root_folders.json | selectattr('path', 'equalto', '/data/library/movies') | list | length == 0
 
 - name: Get existing radarr download clients
   ansible.builtin.uri:
@@ -98,22 +119,3 @@
           value: "movies"
     status_code: 201
   when: radarr_download_clients.json | selectattr('name', 'equalto', 'qBittorrent') | list | length == 0
-
-- name: Fix qbittorrent download client category
-  ansible.builtin.uri:
-    url: "http://127.0.0.1:{{ service_ports.radarr }}/api/v3/downloadclient/{{ _existing.id }}"
-    method: PUT
-    headers:
-      X-Api-Key: "{{ radarr_api_key }}"
-    body_format: json
-    body: >-
-      {{ _existing | combine({'fields':
-           (_existing.fields | rejectattr('name', 'equalto', 'movieCategory') | list)
-           + [{'name': 'movieCategory', 'value': 'movies'}]
-         }) }}
-    status_code: 202
-  vars:
-    _existing: "{{ (radarr_download_clients.json | selectattr('name', 'equalto', 'qBittorrent') | list | first) | default({}) }}"
-  when:
-    - _existing | length > 0
-    - (_existing.fields | selectattr('name', 'equalto', 'movieCategory') | map(attribute='value') | first | default('')) != 'movies'
