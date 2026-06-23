@@ -77,6 +77,8 @@
 - name: Complete jellyfin startup wizard
   when: not (jellyfin_public_info.json.StartupWizardCompleted | default(false))
   block:
+    # Jellyfin restarts its web server once during first-run init, so each
+    # wizard call retries to ride out the brief connection-refused window.
     - name: Set jellyfin startup configuration (language and region)
       ansible.builtin.uri:
         url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/Configuration"
@@ -87,12 +89,20 @@
           MetadataCountryCode: "US"
           PreferredMetadataLanguage: "en"
         status_code: [200, 204]
+      register: jellyfin_startup_config
+      until: jellyfin_startup_config.status in [200, 204]
+      retries: 30
+      delay: 5
 
     - name: Prime jellyfin first-user wizard step
       ansible.builtin.uri:
         url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/User"
         method: GET
         status_code: [200, 204]
+      register: jellyfin_prime_user
+      until: jellyfin_prime_user.status in [200, 204]
+      retries: 30
+      delay: 5
 
     - name: Create jellyfin admin user
       ansible.builtin.uri:
@@ -103,9 +113,66 @@
           Name: "{{ jellyfin_username }}"
           Password: "{{ jellyfin_password }}"
         status_code: [200, 204]
+      register: jellyfin_create_user
+      until: jellyfin_create_user.status in [200, 204]
+      retries: 30
+      delay: 5
 
     - name: Mark jellyfin startup wizard as complete
       ansible.builtin.uri:
         url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/Complete"
         method: POST
         status_code: [200, 204]
+      register: jellyfin_wizard_complete
+      until: jellyfin_wizard_complete.status in [200, 204]
+      retries: 30
+      delay: 5
+
+# --- Provision an API key for the homepage widget ---
+- name: Authenticate to jellyfin as admin
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Users/AuthenticateByName"
+    method: POST
+    headers:
+      X-Emby-Authorization: 'MediaBrowser Client="Ansible", Device="Ansible", DeviceId="ansible", Version="1.0.0"'
+    body_format: json
+    body:
+      Username: "{{ jellyfin_username }}"
+      Pw: "{{ jellyfin_password }}"
+    status_code: 200
+  register: jellyfin_auth
+  until: jellyfin_auth.status == 200
+  retries: 30
+  delay: 5
+
+- name: Get existing jellyfin API keys
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Auth/Keys"
+    headers:
+      Authorization: 'MediaBrowser Token="{{ jellyfin_auth.json.AccessToken }}"'
+    status_code: 200
+  register: jellyfin_keys
+
+- name: Create homepage API key
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Auth/Keys?App=homepage"
+    method: POST
+    headers:
+      Authorization: 'MediaBrowser Token="{{ jellyfin_auth.json.AccessToken }}"'
+    status_code: [200, 204]
+  when: jellyfin_keys.json.Items | selectattr('AppName', 'equalto', 'homepage') | list | length == 0
+
+- name: Re-read jellyfin API keys
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Auth/Keys"
+    headers:
+      Authorization: 'MediaBrowser Token="{{ jellyfin_auth.json.AccessToken }}"'
+    status_code: 200
+  register: jellyfin_keys_final
+
+- name: Expose jellyfin API key as a fact
+  ansible.builtin.set_fact:
+    jellyfin_api_key: >-
+      {{ (jellyfin_keys_final.json.Items
+          | selectattr('AppName', 'equalto', 'homepage')
+          | first).AccessToken }}
