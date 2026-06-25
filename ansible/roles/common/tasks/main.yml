@@ -28,6 +28,14 @@
     direction: incoming
     policy: deny
 
+# Podman publishes ports via DNAT, so inbound traffic to containers traverses the
+# FORWARD chain. UFW defaults that chain to DROP, which blocks all published
+# container ports. Allow routed traffic so published ports are reachable.
+- name: Configure UFW default routed (forward) policy
+  community.general.ufw:
+    direction: routed
+    policy: allow
+
 - name: Allow SSH
   community.general.ufw:
     rule: allow

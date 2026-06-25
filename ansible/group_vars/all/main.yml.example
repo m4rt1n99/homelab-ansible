@@ -24,11 +24,6 @@ immich_admin_name: "Admin"
 # Internal Postgres password for the immich database (container-to-container only).
 immich_postgres_password: "CHANGE_ME"
 
-# Beszel monitoring agent: both values come from the hub's "Add System" dialog.
-# KEY is the hub's SSH public key, TOKEN is the per-agent registration token.
-beszel_key: "CHANGE_ME"
-beszel_token: "CHANGE_ME"
-
 # Replace this with the actual UUID of the NVMe drive you want to use for the ZFS pool. You can find it using `lsblk -o NAME,UUID` on the target host.
 nvme_uuid: "CHANGE_ME"
 
