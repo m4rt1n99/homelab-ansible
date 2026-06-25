@@ -1,4 +1,5 @@
 ---
+# --- Pool ---
 - name: Check if storage-pool exists
   ansible.builtin.command: zpool list storage-pool
   register: zpool_check
@@ -17,7 +18,8 @@
       - "/dev/disk/by-partuuid/{{ zfs_disk1_partuuid }}"
       - "/dev/disk/by-partuuid/{{ zfs_disk2_partuuid }}"
   when: zpool_check.rc != 0
-  
+
+# --- Dataset ---
 - name: Create zfs dataset
   community.general.zfs:
     name: storage-pool/data

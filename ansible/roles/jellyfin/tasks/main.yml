@@ -1,4 +1,5 @@
 ---
+# --- Directories ---
 - name: Create jellyfin directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -17,6 +18,7 @@
     - /mnt/nvme/media/video/library/movies
     - /mnt/nvme/media/video/library/tv
 
+# --- Deploy ---
 - name: Deploy jellyfin container Quadlet
   ansible.builtin.template:
     src: jellyfin.container.j2
@@ -57,6 +59,7 @@
     state: started
     enabled: true
 
+# --- Firewall ---
 - name: Allow jellyfin ports through UFW
   community.general.ufw:
     rule: allow
@@ -65,6 +68,7 @@
     proto: tcp
   notify: Reload ufw
 
+# --- Startup wizard ---
 # /System/Info/Public answers 200 while jellyfin is still loading and reports a
 # stale StartupWizardCompleted=false during that window, so gate on /health first.
 - name: Wait for jellyfin to finish loading

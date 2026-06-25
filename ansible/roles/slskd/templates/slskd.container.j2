@@ -1,20 +1,30 @@
 [Unit]
-Description=Slskd - Soulseek Daemon
+Description=Slskd - Soulseek daemon
 
 [Container]
+# Image
 Image=docker.io/slskd/slskd:latest
 ContainerName=slskd
-Network=vps-services.network
 
+# Networking
+Network=vps-services.network
 PublishPort={{ service_ports.slskd }}:5030
 PublishPort=5031:5031
 PublishPort=50300:50300
 
-Volume=/mnt/nvme/services/slskd:/app
-Volume=/mnt/nvme/media/slskd_downloads:/downloads
-
+# Environment
 Environment=SLSKD_DOWNLOADS_DIR=/downloads
 Environment=PUID={{ media_puid }}
 Environment=PGID={{ media_pgid }}
+
+# Storage
+Volume=/mnt/nvme/services/slskd:/app
+Volume=/mnt/nvme/media/slskd_downloads:/downloads
+# Share the Navidrome library read-only so we are not a zero-share Soulseek leecher.
+Volume=/mnt/nvme/media/navidrome:/music:ro
+
+[Service]
+Restart=always
+
 [Install]
 WantedBy=multi-user.target default.target

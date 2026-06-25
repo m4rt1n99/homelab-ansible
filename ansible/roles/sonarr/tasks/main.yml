@@ -1,5 +1,6 @@
 ---
 
+# --- Directories ---
 - name: Create sonarr config directory
   ansible.builtin.file:
     path: /mnt/nvme/services/sonarr       # /config
@@ -19,6 +20,7 @@
     - /mnt/nvme/media/video/torrents/tv
     - /mnt/nvme/media/video/library/tv
 
+# --- Deploy ---
 - name: Deploy sonarr container Quadlet
   ansible.builtin.template:
     src: sonarr.container.j2
@@ -37,13 +39,14 @@
 
 - name: Reload systemd to register new units
   ansible.builtin.meta: flush_handlers
-  
+
 - name: Start sonarr service
   ansible.builtin.systemd:
     name: sonarr
     state: started
     enabled: true
-    
+
+# --- Firewall ---
 - name: Allow sonarr port through UFW
   community.general.ufw:
     rule: allow

@@ -2,14 +2,21 @@
 Description=Jellyfin - Media server
 
 [Container]
+# Image
 Image=docker.io/jellyfin/jellyfin:latest
 ContainerName=jellyfin
+
+# Networking
 Network=vps-services.network
 PublishPort={{ service_ports.jellyfin }}:8096
 
+# Storage
 Volume=/mnt/nvme/media/video/library:/media
 Volume=/mnt/nvme/services/jellyfin/config:/config
 Volume=/mnt/nvme/services/jellyfin/cache:/cache
+
+[Service]
+Restart=always
 
 [Install]
 WantedBy=multi-user.target default.target

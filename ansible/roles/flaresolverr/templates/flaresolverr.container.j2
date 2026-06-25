@@ -2,9 +2,15 @@
 Description=FlareSolverr - Captcha solver
 
 [Container]
+# Image
 Image=ghcr.io/flaresolverr/flaresolverr:latest
 ContainerName=flaresolverr
+
+# Networking
 Network=vps-services.network
+
+[Service]
+Restart=always
 
 [Install]
 WantedBy=multi-user.target default.target

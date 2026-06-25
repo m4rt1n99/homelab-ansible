@@ -1,4 +1,5 @@
 ---
+# --- Directories ---
 - name: Create navidrome directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -14,6 +15,7 @@
     state: directory
     mode: '0755'
 
+# --- Deploy ---
 - name: Deploy navidrome container Quadlet
   ansible.builtin.template:
     src: navidrome.container.j2
@@ -32,6 +34,7 @@
     state: started
     enabled: true
 
+# --- Firewall ---
 - name: Allow navidrome port through UFW
   community.general.ufw:
     rule: allow

@@ -4,19 +4,27 @@ BindsTo=gluetun.service
 After=gluetun.service
 
 [Container]
+# Image
 Image=lscr.io/linuxserver/qbittorrent:latest
 ContainerName=qbittorrent
+
+# Networking
 # Route all traffic through the gluetun VPN container
 Network=container:gluetun
 
+# Environment
 Environment=PUID={{ media_puid }}
 Environment=PGID={{ media_pgid }}
 Environment=UMASK=002
 Environment=TZ=Europe/Prague
 Environment=WEBUI_PORT={{ service_ports.qbittorrent }}
 
+# Storage
 Volume=/mnt/nvme/services/qbittorrent:/config
 Volume=/mnt/nvme/media/video:/data
+
+[Service]
+Restart=always
 
 [Install]
 WantedBy=multi-user.target default.target

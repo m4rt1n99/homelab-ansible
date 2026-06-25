@@ -1,4 +1,5 @@
 ---
+# --- Validation ---
 - name: Validate required hdd-spindown settings
   ansible.builtin.assert:
     that:
@@ -6,6 +7,7 @@
     fail_msg: "Set hdd_spindown_devices before enabling the hdd_spindown role."
   when: (hdd_spindown_enabled | default(false)) | bool
 
+# --- Install ---
 - name: Install hdd-spindown dependencies
   become: true
   ansible.builtin.apt:
@@ -51,6 +53,7 @@
   notify: Restart hdd-spindown
   when: (hdd_spindown_enabled | default(false)) | bool
 
+# --- Service ---
 - name: Check if hdd-spindown unit exists
   become: true
   ansible.builtin.stat:

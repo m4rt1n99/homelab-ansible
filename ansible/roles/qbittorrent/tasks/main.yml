@@ -1,5 +1,6 @@
 ---
 
+# --- Directories ---
 - name: Create qbittorrent config directory
   ansible.builtin.file:
     path: /mnt/nvme/services/qbittorrent     # /config
@@ -19,6 +20,7 @@
     - /mnt/nvme/media/video/torrents/movies  # "movies" download category
     - /mnt/nvme/media/video/torrents/tv      # "tv" download category
 
+# --- Deploy ---
 - name: Deploy qbittorrent container Quadlet
   ansible.builtin.template:
     src: qbittorrent.container.j2
@@ -37,6 +39,7 @@
     state: started
     enabled: true
 
+# --- Configuration ---
 - name: Wait for qBittorrent to generate config
   ansible.builtin.wait_for:
     path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf

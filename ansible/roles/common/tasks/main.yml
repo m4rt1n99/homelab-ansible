@@ -1,4 +1,5 @@
 ---
+# --- Packages ---
 - name: Update and upgrade apt packages
   become: true
   apt:
@@ -14,6 +15,7 @@
       - samba
       - zfsutils-linux
 
+# --- Storage ---
 - name: Mount NVMe disk
   ansible.builtin.mount:
     src: "/dev/disk/by-uuid/{{ nvme_uuid }}"
@@ -22,7 +24,7 @@
     opts: "defaults,nofail"
     state: mounted
 
-# UFW configuration tasks
+# --- Firewall ---
 - name: Configure UFW default incoming policy
   community.general.ufw:
     direction: incoming
@@ -51,7 +53,7 @@
   community.general.ufw:
     state: enabled
 
-# Cleanup and maintenance
+# --- Cleanup ---
 - name: Remove unnecessary packages
   ansible.builtin.apt:
     autoremove: true

@@ -1,15 +1,27 @@
 [Unit]
-Description=Navidrome - Music Collection Manager
+Description=Navidrome - Music collection manager
 
 [Container]
+# Image
 Image=docker.io/deluan/navidrome:latest
 ContainerName=navidrome
+
+# Networking
 Network=vps-services.network
 PublishPort={{ service_ports.navidrome }}:4533
-Volume=/mnt/nvme/services/navidrome/data:/data
-Volume=/mnt/nvme/media/navidrome:/music
+
+# Environment
 # Auto-creates the "admin" user on first boot (empty DB), skipping the setup wizard.
 Environment=ND_DEVAUTOCREATEADMINPASSWORD={{ navidrome_password }}
+Environment=ND_SCANNER_WATCHERENABLED=false
+Environment=ND_SCANSCHEDULE=@every 30m
+
+# Storage
+Volume=/mnt/nvme/services/navidrome/data:/data
+Volume=/mnt/nvme/media/navidrome:/music
+
+[Service]
+Restart=always
 
 [Install]
 WantedBy=multi-user.target default.target

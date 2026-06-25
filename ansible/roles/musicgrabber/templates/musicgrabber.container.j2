@@ -2,12 +2,16 @@
 Description=Musicgrabber - Music acquisition service
 
 [Container]
+# Image
 Image=docker.io/g33kphr33k/musicgrabber:latest
 ContainerName=musicgrabber
+
+# Networking
 Network=vps-services.network
 PublishPort=38274:38274
 PublishPort={{ service_ports.musicgrabber }}:8080
 
+# Environment
 Environment=DEFAULT_CONVERT_TO_FLAC=true
 
 Environment=NAVIDROME_URL=http://navidrome:{{ service_ports.navidrome }}
@@ -27,9 +31,13 @@ Environment=SOURCE_ZVU4NO_ENABLED=false
 
 Environment=ORGANISE_BY_ARTIST=false
 
+# Storage
 Volume=/mnt/nvme/services/musicgrabber/data:/data
 Volume=/mnt/nvme/media/navidrome:/music
 Volume=/mnt/nvme/media/slskd_downloads:/downloads
+
+[Service]
+Restart=always
 
 [Install]
 WantedBy=multi-user.target default.target

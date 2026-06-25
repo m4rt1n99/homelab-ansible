@@ -1,4 +1,5 @@
 ---
+# --- Directories ---
 # Owned by the slskd container user (PUID/PGID) so slskd can write its database.
 - name: Create slskd config directory
   ansible.builtin.file:
@@ -18,6 +19,7 @@
     recurse: true
     mode: '0755'
 
+# --- Deploy ---
 - name: Deploy slskd container Quadlet
   ansible.builtin.template:
     src: slskd.container.j2
@@ -46,6 +48,7 @@
     block: "{{ lookup('template', 'slskd-config.yml.j2') }}"
   notify: Restart slskd
 
+# --- Firewall ---
 - name: Allow slskd ports through UFW
   community.general.ufw:
     rule: allow

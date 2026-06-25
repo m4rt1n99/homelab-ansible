@@ -1,5 +1,6 @@
 ---
 
+# --- Directories ---
 - name: Create radarr config directory
   ansible.builtin.file:
     path: /mnt/nvme/services/radarr
@@ -19,6 +20,7 @@
     - /mnt/nvme/media/video/torrents/movies
     - /mnt/nvme/media/video/library/movies
 
+# --- Deploy ---
 - name: Deploy radarr container Quadlet
   ansible.builtin.template:
     src: radarr.container.j2
@@ -37,13 +39,14 @@
 
 - name: Reload systemd to register new units
   ansible.builtin.meta: flush_handlers
-  
+
 - name: Start radarr service
   ansible.builtin.systemd:
     name: radarr
     state: started
     enabled: true
-    
+
+# --- Firewall ---
 - name: Allow radarr port through UFW
   community.general.ufw:
     rule: allow

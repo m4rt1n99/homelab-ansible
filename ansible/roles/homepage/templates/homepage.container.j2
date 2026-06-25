@@ -1,12 +1,23 @@
 [Unit]
-Description=Homepage - Personal Dashboard
+Description=Homepage - Personal dashboard
 
 [Container]
+# Image
 Image=ghcr.io/gethomepage/homepage:latest
 ContainerName=homepage
+
+# Networking
 Network=vps-services.network
 PublishPort={{ service_ports.homepage }}:3000
-Volume=/mnt/nvme/services/homepage/config:/app/config
+
+# Environment
 Environment=HOMEPAGE_ALLOWED_HOSTS=*
+
+# Storage
+Volume=/mnt/nvme/services/homepage/config:/app/config
+
+[Service]
+Restart=always
+
 [Install]
 WantedBy=multi-user.target default.target

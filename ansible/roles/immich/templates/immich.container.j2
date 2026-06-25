@@ -4,13 +4,18 @@ Wants=immich-redis.service immich-postgres.service
 After=immich-redis.service immich-postgres.service
 
 [Container]
+# Image
 Image=ghcr.io/immich-app/immich-server:release
 ContainerName=immich_server
+
+# Networking
 Network=vps-services.network
 PublishPort={{ service_ports.immich }}:2283
 
+# Environment
 EnvironmentFile=/mnt/nvme/services/immich/immich.env
 
+# Storage
 Volume=/mnt/nvme/media/immich:/data
 Volume=/mnt/nvme/services/immich/immich-config.json:/config/immich-config.json:ro
 Volume=/etc/localtime:/etc/localtime:ro

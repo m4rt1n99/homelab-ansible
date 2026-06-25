@@ -2,14 +2,19 @@
 Description=Gluetun - VPN client for the torrent stack
 
 [Container]
+# Image
 Image=docker.io/qmcgaw/gluetun:latest
 ContainerName=gluetun
+
+# Networking
 Network=vps-services.network
+PublishPort={{ service_ports.qbittorrent_published }}:{{ service_ports.qbittorrent }}
+
+# Capabilities
 AddCapability=NET_ADMIN
 AddDevice=/dev/net/tun:/dev/net/tun
 
-PublishPort={{ service_ports.qbittorrent_published }}:{{ service_ports.qbittorrent }}
-
+# Environment
 Environment=VPN_SERVICE_PROVIDER=mullvad
 Environment=VPN_TYPE=wireguard
 Environment=WIREGUARD_PRIVATE_KEY={{ vpn_wireguard_private_key }}
@@ -17,7 +22,11 @@ Environment=WIREGUARD_ADDRESSES={{ vpn_wireguard_addresses }}
 Environment=SERVER_COUNTRIES={{ vpn_server_countries | join(",") }}
 Environment=TZ=Europe/Prague
 
+# Storage
 Volume=/mnt/nvme/services/gluetun:/gluetun
+
+[Service]
+Restart=always
 
 [Install]
 WantedBy=multi-user.target default.target

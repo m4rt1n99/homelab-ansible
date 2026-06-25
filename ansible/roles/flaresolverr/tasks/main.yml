@@ -7,7 +7,7 @@
   notify:
     - Reload systemd
     - Restart flaresolverr
-  
+
 - name: Reload systemd to register new units
   ansible.builtin.meta: flush_handlers
 

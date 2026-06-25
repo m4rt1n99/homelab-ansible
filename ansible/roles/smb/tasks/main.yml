@@ -1,4 +1,5 @@
 ---
+# --- User ---
 - name: Add samba user
   ansible.builtin.user:
     name: nas
@@ -12,6 +13,7 @@
   changed_when: false
   no_log: true
 
+# --- Shares ---
 - name: Add shares to smb.conf
   ansible.builtin.blockinfile:
     path: /etc/samba/smb.conf
@@ -29,6 +31,7 @@
     marker: "# {mark} ANSIBLE MANAGED - storage share"
   notify: Restart smbd
 
+# --- Firewall ---
 - name: Allow smb ports through UFW
   community.general.ufw:
     rule: allow

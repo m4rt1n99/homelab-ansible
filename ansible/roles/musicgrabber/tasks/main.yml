@@ -1,4 +1,5 @@
 ---
+# --- Directories ---
 - name: Create musicgrabber directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -8,6 +9,7 @@
     - /mnt/nvme/services/musicgrabber
     - /mnt/nvme/services/musicgrabber/data
 
+# --- Deploy ---
 - name: Deploy musicgrabber container Quadlet
   ansible.builtin.template:
     src: musicgrabber.container.j2
@@ -26,6 +28,7 @@
     state: started
     enabled: true
 
+# --- Firewall ---
 - name: Allow musicgrabber ports through UFW
   community.general.ufw:
     rule: allow

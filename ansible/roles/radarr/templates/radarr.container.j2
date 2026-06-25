@@ -2,18 +2,26 @@
 Description=Radarr - Movie collection manager
 
 [Container]
+# Image
 Image=lscr.io/linuxserver/radarr:latest
 ContainerName=radarr
-Network=vps-services.network
 
+# Networking
+Network=vps-services.network
 PublishPort={{ service_ports.radarr }}:7878
+
+# Environment
 Environment=PUID={{ media_puid }}
 Environment=PGID={{ media_pgid }}
 Environment=UMASK=002
 Environment=TZ=Europe/Prague
 
+# Storage
 Volume=/mnt/nvme/services/radarr:/config
 Volume=/mnt/nvme/media/video:/data
+
+[Service]
+Restart=always
 
 [Install]
 WantedBy=multi-user.target default.target
