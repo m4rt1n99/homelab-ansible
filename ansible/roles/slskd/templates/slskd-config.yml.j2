@@ -13,3 +13,9 @@ soulseek:
   port: 2271
   username: "{{ soulseek_username }}"
   password: "{{ soulseek_password }}"
+
+# Sharing the music library keeps us off Soulseek leecher ban lists, so peers
+# accept our download requests (used by musicgrabber and soulsync).
+shares:
+  directories:
+    - /music
