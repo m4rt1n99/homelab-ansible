@@ -1,0 +1,18 @@
+---
+- name: Restart immich-postgres
+  ansible.builtin.systemd:
+    name: immich-postgres
+    state: restarted
+  become: true
+
+- name: Restart immich-redis
+  ansible.builtin.systemd:
+    name: immich-redis
+    state: restarted
+  become: true
+
+- name: Restart immich
+  ansible.builtin.systemd:
+    name: immich
+    state: restarted
+  become: true

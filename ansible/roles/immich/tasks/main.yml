@@ -1,0 +1,193 @@
+---
+- name: Create immich service directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/nvme/services/immich
+    - /mnt/nvme/services/immich/postgres
+    - /mnt/nvme/services/immich/postgres/data
+
+- name: Create immich media library directory
+  ansible.builtin.file:
+    path: /mnt/nvme/media/immich   # mounted into the container as /data (photos, thumbnails, encoded video)
+    state: directory
+    mode: '0755'
+
+# --- Data-loss guard ---
+# A previous transition silently re-initialised the Postgres cluster (empty data dir ->
+# fresh initdb) and orphaned every photo. The .db_initialized marker lives alongside the
+# data/ dir, so if data/ is ever emptied the marker survives and we can refuse to start.
+- name: Probe immich postgres cluster and init marker
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - /mnt/nvme/services/immich/postgres/data/PG_VERSION
+    - /mnt/nvme/services/immich/postgres/.db_initialized
+  register: immich_pg_probe
+
+- name: Refuse to silently re-initialise a previously created immich database
+  ansible.builtin.assert:
+    that:
+      - not (immich_pg_probe.results[1].stat.exists and not immich_pg_probe.results[0].stat.exists)
+    fail_msg: >-
+      Immich Postgres data dir (/mnt/nvme/services/immich/postgres/data) is empty but this
+      host has initialised the database before (.db_initialized marker present). Refusing to
+      continue, because starting Postgres now would create a fresh, empty cluster and orphan
+      all existing photos. Restore the cluster from backup, or delete
+      /mnt/nvme/services/immich/postgres/.db_initialized to intentionally start fresh.
+    success_msg: "Immich Postgres data dir state is consistent."
+
+- name: Deploy immich env file
+  ansible.builtin.template:
+    src: env.j2
+    dest: /mnt/nvme/services/immich/immich.env
+    mode: '0640'
+  notify:
+    - Restart immich-postgres
+    - Restart immich
+
+- name: Deploy immich config file
+  ansible.builtin.template:
+    src: immich-config.json.j2
+    dest: /mnt/nvme/services/immich/immich-config.json
+    mode: '0640'
+  notify: Restart immich
+
+- name: Deploy immich-postgres container Quadlet
+  ansible.builtin.template:
+    src: immich-postgres.container.j2
+    dest: /etc/containers/systemd/immich-postgres.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart immich-postgres
+
+- name: Deploy immich-redis container Quadlet
+  ansible.builtin.template:
+    src: immich-redis.container.j2
+    dest: /etc/containers/systemd/immich-redis.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart immich-redis
+
+- name: Deploy immich server container Quadlet
+  ansible.builtin.template:
+    src: immich.container.j2
+    dest: /etc/containers/systemd/immich.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart immich
+
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
+
+- name: Start immich backing services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - immich-postgres
+    - immich-redis
+
+# Record that a real cluster now exists, so the data-loss guard above can detect a future
+# wipe. Re-probe rather than trusting the earlier stat (the cluster may have just been created).
+- name: Re-probe immich postgres cluster after start
+  ansible.builtin.stat:
+    path: /mnt/nvme/services/immich/postgres/data/PG_VERSION
+  register: immich_pg_version
+
+- name: Mark the immich database as initialised
+  ansible.builtin.copy:
+    content: "initialized\n"
+    dest: /mnt/nvme/services/immich/postgres/.db_initialized
+    mode: '0644'
+  when: immich_pg_version.stat.exists
+
+- name: Start immich server service
+  ansible.builtin.systemd:
+    name: immich
+    state: started
+    enabled: true
+
+- name: Allow immich port through UFW
+  community.general.ufw:
+    rule: allow
+    route: true   # published port is DNAT'd to the container; routed via FORWARD, not INPUT
+    port: "{{ service_ports.immich }}"
+    proto: tcp
+  notify: Reload ufw
+
+# --- Provision an API key for the homepage widget ---
+# Immich only returns an API key secret once, so persist it on the host and reuse it.
+- name: Check for a previously stored immich API key
+  ansible.builtin.stat:
+    path: /mnt/nvme/services/immich/homepage_api_key
+  register: immich_api_key_file
+
+- name: Mint and store the immich API key
+  when: not immich_api_key_file.stat.exists
+  block:
+    - name: Wait for the immich server to be ready
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ service_ports.immich }}/api/server/ping"
+        status_code: 200
+      register: immich_ping
+      until: immich_ping.status == 200
+      retries: 30
+      delay: 5
+
+    - name: Bootstrap the immich admin account
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ service_ports.immich }}/api/auth/admin-sign-up"
+        method: POST
+        body_format: json
+        body:
+          email: "{{ immich_admin_email }}"
+          password: "{{ immich_admin_password }}"
+          name: "{{ immich_admin_name }}"
+        status_code: [201, 400]
+
+    - name: Authenticate to immich as admin
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ service_ports.immich }}/api/auth/login"
+        method: POST
+        body_format: json
+        body:
+          email: "{{ immich_admin_email }}"
+          password: "{{ immich_admin_password }}"
+        status_code: [200, 201]
+      register: immich_auth
+
+    - name: Create the homepage API key
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ service_ports.immich }}/api/api-keys"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ immich_auth.json.accessToken }}"
+        body_format: json
+        body:
+          name: homepage
+          permissions:
+            - all
+        status_code: 201
+      register: immich_api_key_create
+
+    - name: Persist the immich API key secret on the host
+      ansible.builtin.copy:
+        content: "{{ immich_api_key_create.json.secret }}"
+        dest: /mnt/nvme/services/immich/homepage_api_key
+        mode: '0600'
+
+- name: Read the stored immich API key
+  ansible.builtin.slurp:
+    src: /mnt/nvme/services/immich/homepage_api_key
+  register: immich_api_key_slurp
+
+- name: Expose the immich API key as a fact
+  ansible.builtin.set_fact:
+    immich_api_key: "{{ immich_api_key_slurp.content | b64decode | trim }}"

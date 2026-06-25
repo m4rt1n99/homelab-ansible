@@ -1,0 +1,18 @@
+[Unit]
+Description=Immich - Redis
+
+[Container]
+Image=docker.io/valkey/valkey:9@sha256:3b55fbaa0cd93cf0d9d961f405e4dfcc70efe325e2d84da207a0a8e6d8fde4f9
+ContainerName=immich_redis
+Network=vps-services.network
+
+HealthCmd=redis-cli ping || exit 1
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target default.target

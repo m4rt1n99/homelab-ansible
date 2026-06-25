@@ -1,0 +1,22 @@
+[Unit]
+Description=Immich - Image management
+Wants=immich-redis.service immich-postgres.service
+After=immich-redis.service immich-postgres.service
+
+[Container]
+Image=ghcr.io/immich-app/immich-server:release
+ContainerName=immich_server
+Network=vps-services.network
+PublishPort={{ service_ports.immich }}:2283
+
+EnvironmentFile=/mnt/nvme/services/immich/immich.env
+
+Volume=/mnt/nvme/media/immich:/data
+Volume=/mnt/nvme/services/immich/immich-config.json:/config/immich-config.json:ro
+Volume=/etc/localtime:/etc/localtime:ro
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target default.target
