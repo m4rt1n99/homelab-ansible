@@ -1,7 +1,12 @@
 .service-block {
   min-height: 2.75rem;
 }
-li.service[data-name="Navidrome"] .service-card > div:last-child > div {
-  min-height: 2.75rem;
-  height: auto;
+
+ul.services-list.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+ul.services-list.grid > li.service {
+  flex: 1 1 calc(33.333% - 0.5rem);
 }

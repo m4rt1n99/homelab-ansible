@@ -13,16 +13,95 @@
           user: admin
           token: {{ navidrome_token }}
           salt: {{ navidrome_salt }}
+
     - MusicGrabber:
         icon: sh-music-grabber.png
         href: "{{ base_url }}:{{ service_ports.musicgrabber }}"
         description: Music downloader
         siteMonitor: "{{ base_url }}:{{ service_ports.musicgrabber }}"
+
     - Slskd:
         icon: slskd.png
         href: "{{ base_url }}:{{ service_ports.slskd }}"
         description: Soulseek client
+{% if slskd_api_key %}
         widget:
           type: slskd
           url: "{{ base_url }}:{{ service_ports.slskd }}"
           key: {{ slskd_api_key }}
+{% endif %}
+
+- Movies:
+    - Jellyfin:
+        icon: jellyfin.png
+        href: "{{ base_url }}:{{ service_ports.jellyfin }}"
+        description: Media server
+{% if jellyfin_api_key %}
+        widget:
+          type: jellyfin
+          url: "{{ base_url }}:{{ service_ports.jellyfin }}"
+          key: {{ jellyfin_api_key }}
+          enableBlocks: true
+          enableNowPlaying: false
+          enableMediaControl: false
+{% endif %}
+
+    - Radarr:
+        icon: radarr.png
+        href: "{{ base_url }}:{{ service_ports.radarr }}"
+        description: Movie downloader
+{% if radarr_api_key %}
+        widget:
+          type: radarr
+          url: "{{ base_url }}:{{ service_ports.radarr }}"
+          key: {{ radarr_api_key }}
+          fields: ["wanted", "missing", "queued", "movies"]
+{% endif %}
+
+    - Sonarr:
+        icon: sonarr.png
+        href: "{{ base_url }}:{{ service_ports.sonarr }}"
+        description: TV show downloader
+{% if sonarr_api_key %}
+        widget:
+          type: sonarr
+          url: "{{ base_url }}:{{ service_ports.sonarr }}"
+          key: {{ sonarr_api_key }}
+          fields: ["wanted", "queued", "series"]
+{% endif %}
+
+    - Prowlarr:
+        icon: prowlarr.png
+        href: "{{ base_url }}:{{ service_ports.prowlarr }}"
+        description: Indexer manager
+{% if prowlarr_api_key %}
+        widget:
+          type: prowlarr
+          url: "{{ base_url }}:{{ service_ports.prowlarr }}"
+          key: {{ prowlarr_api_key }}
+{% endif %}
+
+    - qBittorrent:
+        icon: qbittorrent.png
+        href: "{{ base_url }}:{{ service_ports.qbittorrent_published }}"
+        description: BitTorrent client
+        widget:
+          type: qbittorrent
+          url: "{{ base_url }}:{{ service_ports.qbittorrent_published }}"
+          username: {{ qbittorrent_username }}
+          password: {{ qbittorrent_password }}
+          fields: ["leech", "download", "seed", "upload"]
+
+- Images:
+    - Immich:
+        icon: immich.png
+        href: "{{ base_url }}:{{ service_ports.immich }}"
+        description: Photo and video management
+{% if immich_api_key %}
+        widget:
+          type: immich
+          url: "{{ base_url }}:{{ service_ports.immich }}"
+          key: {{ immich_api_key }}
+          version: 2
+          fields: ["photos", "videos", "storage"]
+{% endif %}

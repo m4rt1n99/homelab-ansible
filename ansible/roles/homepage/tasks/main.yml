@@ -21,6 +21,30 @@
     - Reload systemd
     - Restart homepage
 
+# Read service API keys from the files each service persists, so homepage does not depend
+# on immich/jellyfin running in the same play. Missing key -> empty fact -> widget omitted.
+- name: Stat persisted widget API keys
+  ansible.builtin.stat:
+    path: "/mnt/nvme/services/{{ item }}/homepage_api_key"
+  loop:
+    - immich
+    - jellyfin
+  register: widget_api_key_files
+
+- name: Read persisted widget API keys
+  ansible.builtin.slurp:
+    src: "{{ item.stat.path }}"
+  loop: "{{ widget_api_key_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stat.exists
+  register: widget_api_key_slurps
+
+- name: Expose widget API keys as facts (empty when not yet provisioned)
+  ansible.builtin.set_fact:
+    immich_api_key: "{{ widget_api_key_slurps.results | selectattr('item.item', 'equalto', 'immich') | selectattr('content', 'defined') | map(attribute='content') | first | default('') | b64decode | trim }}"
+    jellyfin_api_key: "{{ widget_api_key_slurps.results | selectattr('item.item', 'equalto', 'jellyfin') | selectattr('content', 'defined') | map(attribute='content') | first | default('') | b64decode | trim }}"
+
 - name: Deploy homepage config
   ansible.builtin.template:
     src: "{{ item.src }}"

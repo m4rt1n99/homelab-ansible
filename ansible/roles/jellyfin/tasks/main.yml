@@ -65,17 +65,32 @@
     proto: tcp
   notify: Reload ufw
 
-- name: Wait for jellyfin to come up and read wizard state
+# /System/Info/Public answers 200 while jellyfin is still loading and reports a
+# stale StartupWizardCompleted=false during that window, so gate on /health first.
+- name: Wait for jellyfin to finish loading
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.jellyfin }}/health"
+    method: GET
+    return_content: true
+  register: jellyfin_health
+  retries: 30
+  delay: 10
+  until: jellyfin_health.status == 200 and 'Healthy' in (jellyfin_health.content | default(''))
+
+- name: Read jellyfin wizard state
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ service_ports.jellyfin }}/System/Info/Public"
     method: GET
   register: jellyfin_public_info
-  retries: 30
-  delay: 10
-  until: jellyfin_public_info.status == 200
 
 - name: Complete jellyfin startup wizard
-  when: not (jellyfin_public_info.json.StartupWizardCompleted | default(false))
+  # ansible parses the response as camelCase; tolerate either casing just in case
+  when: >
+    not (
+      jellyfin_public_info.json.startupWizardCompleted
+      | default(jellyfin_public_info.json.StartupWizardCompleted)
+      | default(false)
+    )
   block:
     # Jellyfin restarts its web server once during first-run init, so each
     # wizard call retries to ride out the brief connection-refused window.
@@ -83,6 +98,8 @@
       ansible.builtin.uri:
         url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/Configuration"
         method: POST
+        headers:
+          X-Emby-Authorization: 'MediaBrowser Client="Ansible", Device="Ansible", DeviceId="ansible", Version="1.0.0"'
         body_format: json
         body:
           UICulture: "en-US"
@@ -98,6 +115,8 @@
       ansible.builtin.uri:
         url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/User"
         method: GET
+        headers:
+          X-Emby-Authorization: 'MediaBrowser Client="Ansible", Device="Ansible", DeviceId="ansible", Version="1.0.0"'
         status_code: [200, 204]
       register: jellyfin_prime_user
       until: jellyfin_prime_user.status in [200, 204]
@@ -108,6 +127,8 @@
       ansible.builtin.uri:
         url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/User"
         method: POST
+        headers:
+          X-Emby-Authorization: 'MediaBrowser Client="Ansible", Device="Ansible", DeviceId="ansible", Version="1.0.0"'
         body_format: json
         body:
           Name: "{{ jellyfin_username }}"
@@ -122,6 +143,8 @@
       ansible.builtin.uri:
         url: "http://127.0.0.1:{{ service_ports.jellyfin }}/Startup/Complete"
         method: POST
+        headers:
+          X-Emby-Authorization: 'MediaBrowser Client="Ansible", Device="Ansible", DeviceId="ansible", Version="1.0.0"'
         status_code: [200, 204]
       register: jellyfin_wizard_complete
       until: jellyfin_wizard_complete.status in [200, 204]
@@ -176,3 +199,10 @@
       {{ (jellyfin_keys_final.json.Items
           | selectattr('AppName', 'equalto', 'homepage')
           | first).AccessToken }}
+
+# Persist on the host so the homepage role can read it without jellyfin running in the same play.
+- name: Persist the jellyfin API key on the host
+  ansible.builtin.copy:
+    content: "{{ jellyfin_api_key }}"
+    dest: /mnt/nvme/services/jellyfin/homepage_api_key
+    mode: '0600'
