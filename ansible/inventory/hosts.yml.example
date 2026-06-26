@@ -12,7 +12,22 @@ all:
           os_family: Debian
           host_roles:
             - common
-            - smb
             - zfs
+            - smb
             - hdd_spindown
+            - podman_network
+            - gluetun
+            - qbittorrent
+            - jellyfin
+            - radarr
+            - sonarr
+            - flaresolverr
+            - prowlarr
+            - seerr
+            - navidrome
+            - slskd
+            - musicgrabber
+            - soulsync
+            - immich
+            - homepage
           hostname: my-host
