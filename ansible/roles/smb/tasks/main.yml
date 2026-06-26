@@ -1,15 +1,16 @@
 ---
 # --- User ---
-- name: Add nas user if not present
+- name: Add SMB user if not present
   ansible.builtin.user:
-    name: nas
+    name: "{{ smb_username }}"
+    password: "{{ smb_password | password_hash('sha512') }}"
     state: present
     system: true
     shell: /usr/sbin/nologin
 
 - name: Set samba password for user
   ansible.builtin.command:
-    cmd: smbpasswd -s -a nas
+    cmd: smbpasswd -s -a {{ smb_username }}
     stdin: "{{ smb_password }}\n{{ smb_password }}"
   changed_when: false
   no_log: true

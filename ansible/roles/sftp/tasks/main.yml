@@ -1,0 +1,42 @@
+---
+- name: Ensure sftp_users group exists
+  ansible.builtin.group:
+    name: "sftp_users"
+    state: present
+
+- name: Ensure SFTP user exists
+  ansible.builtin.user:
+    name: "{{ sftp_username }}"
+    password: "{{ sftp_password | password_hash('sha512')}}"
+    shell: /usr/sbin/nologin
+    state: present
+    group: "sftp_users"
+    create_home: no
+  
+- name: Create SFTP chroot root
+  ansible.builtin.file:
+    path: "/mnt/storage/share"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create writable upload dir for the SFTP user
+  ansible.builtin.file:
+    path: "/mnt/storage/share/{{ sftp_username }}"
+    state: directory
+    owner: "{{ sftp_username }}"
+    group: "sftp_users"
+    mode: '0755'
+
+- name: Configure SFTP
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config
+    block: |
+      Match User {{ sftp_username }}
+        ChrootDirectory /mnt/storage/share
+        ForceCommand internal-sftp -d /{{ sftp_username }}
+        AllowTcpForwarding no
+        X11Forwarding no
+    marker: "# {mark} ANSIBLE MANAGED - storage share"
+  notify: Restart sshd
