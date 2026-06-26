@@ -6,23 +6,32 @@ radarr_api_key: "CHANGE_ME"
 sonarr_api_key: "CHANGE_ME"
 
 # Login Credentials
-smb_password: "CHANGE_ME"
 soulseek_username: "CHANGE_ME"
 soulseek_password: "CHANGE_ME"
+
 slskd_username: "CHANGE_ME"
 slskd_password: "CHANGE_ME"
+
 navidrome_username: "admin" # Should be "admin" for the default admin user
 navidrome_password: "CHANGE_ME"
 navidrome_salt: "CHANGE_ME"
+
 jellyfin_username: "admin"
 jellyfin_password: "CHANGE_ME"
+
 qbittorrent_username: "admin"
 qbittorrent_password: "CHANGE_ME"
+
 immich_admin_email: "CHANGE_ME"
 immich_admin_password: "CHANGE_ME"
 immich_admin_name: "Admin"
-# Internal Postgres password for the immich database (container-to-container only).
 immich_postgres_password: "CHANGE_ME"
+
+sftp_username: "CHANGE_ME"
+sftp_password: "CHANGE_ME"
+smb_username: "CHANGE_ME"
+smb_password: "CHANGE_ME"
+
 
 # Replace this with the actual UUID of the NVMe drive you want to use for the ZFS pool. You can find it using `lsblk -o NAME,UUID` on the target host.
 nvme_uuid: "CHANGE_ME"
@@ -49,6 +58,7 @@ service_ports:
   musicgrabber: 8080
   slskd: 5030
   navidrome: 4533
+  soulsync: 8008          # web UI
   jellyfin: 8096
   # qbittorrent runs inside gluetun's network namespace: it listens on 8080
   # internally, and gluetun publishes it on the host as qbittorrent_published
@@ -59,9 +69,10 @@ service_ports:
   flaresolverr: 8191
   radarr: 7878
   sonarr: 8989
+  seerr: 5055
+  profilarr: 6868
   bazarr: 6767
   immich: 2283
-
 
 # Prowlarr indexers to provision.
 prowlarr_min_seeders: 10
