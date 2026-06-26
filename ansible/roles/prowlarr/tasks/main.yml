@@ -151,7 +151,7 @@
 
 - name: Add prowlarr indexers
   ansible.builtin.uri:
-    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/indexer"
+    url: "http://127.0.0.1:{{ service_ports.prowlarr }}/api/v1/indexer?forceSave=true"
     method: POST
     headers:
       X-Api-Key: "{{ prowlarr_api_key }}"

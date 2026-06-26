@@ -1,6 +1,6 @@
 ---
 # --- User ---
-- name: Add samba user
+- name: Add nas user if not present
   ansible.builtin.user:
     name: nas
     state: present
