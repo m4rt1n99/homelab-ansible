@@ -15,6 +15,7 @@ all:
             - zfs
             - smb
             - hdd_spindown
+            - sftp
             - podman_network
             - gluetun
             - qbittorrent
