@@ -2,7 +2,7 @@
 # --- Pool ---
 - name: Check if storage-pool exists
   ansible.builtin.command: zpool list storage-pool
-  register: zpool_check
+  register: zfs_zpool_check
   changed_when: false
   failed_when: false
 
@@ -17,7 +17,8 @@
       - mirror
       - "/dev/disk/by-partuuid/{{ zfs_disk1_partuuid }}"
       - "/dev/disk/by-partuuid/{{ zfs_disk2_partuuid }}"
-  when: zpool_check.rc != 0
+  changed_when: true
+  when: zfs_zpool_check.rc != 0
 
 # --- Dataset ---
 - name: Create zfs dataset

@@ -2,7 +2,7 @@
 # --- Setup ---
 - name: Compute Navidrome Subsonic API token
   ansible.builtin.set_fact:
-    navidrome_token: "{{ (navidrome_password ~ navidrome_salt) | hash('md5') }}"
+    homepage_navidrome_token: "{{ (navidrome_password ~ navidrome_salt) | hash('md5') }}"
 
 - name: Create homepage directories
   ansible.builtin.file:
@@ -32,22 +32,29 @@
     - immich
     - jellyfin
     - seerr
-  register: widget_api_key_files
+  register: homepage_widget_api_key_files
 
 - name: Read persisted widget API keys
   ansible.builtin.slurp:
     src: "{{ item.stat.path }}"
-  loop: "{{ widget_api_key_files.results }}"
+  loop: "{{ homepage_widget_api_key_files.results }}"
   loop_control:
     label: "{{ item.item }}"
   when: item.stat.exists
-  register: widget_api_key_slurps
+  register: homepage_widget_api_key_slurps
 
 - name: Expose widget API keys as facts (empty when not yet provisioned)
   ansible.builtin.set_fact:
-    immich_api_key: "{{ widget_api_key_slurps.results | selectattr('item.item', 'equalto', 'immich') | selectattr('content', 'defined') | map(attribute='content') | first | default('') | b64decode | trim }}"
-    jellyfin_api_key: "{{ widget_api_key_slurps.results | selectattr('item.item', 'equalto', 'jellyfin') | selectattr('content', 'defined') | map(attribute='content') | first | default('') | b64decode | trim }}"
-    seerr_api_key: "{{ widget_api_key_slurps.results | selectattr('item.item', 'equalto', 'seerr') | selectattr('content', 'defined') | map(attribute='content') | first | default('') | b64decode | trim }}"
+    "{{ item }}_api_key": >-
+      {{ homepage_widget_api_key_slurps.results
+         | selectattr('item.item', 'equalto', item)
+         | selectattr('content', 'defined')
+         | map(attribute='content') | first | default('')
+         | b64decode | trim }}
+  loop:
+    - immich
+    - jellyfin
+    - seerr
 
 - name: Deploy homepage config
   ansible.builtin.template:

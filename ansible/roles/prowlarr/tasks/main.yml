@@ -79,7 +79,7 @@
 
 - name: Resolve flaresolverr tag id
   ansible.builtin.set_fact:
-    flaresolverr_tag_id: >-
+    prowlarr_flaresolverr_tag_id: >-
       {{ (prowlarr_tags.json | selectattr('label', 'equalto', 'flaresolverr') | map(attribute='id') | first)
          if (prowlarr_flaresolverr_tag.skipped | default(false))
          else prowlarr_flaresolverr_tag.json.id }}
@@ -105,7 +105,7 @@
       implementationName: FlareSolverr
       configContract: FlareSolverrSettings
       infoLink: "https://wiki.servarr.com/prowlarr/supported#flaresolverr"
-      tags: "{{ [flaresolverr_tag_id | int] }}"
+      tags: "{{ [prowlarr_flaresolverr_tag_id | int] }}"
       fields:
         - name: host
           value: "http://flaresolverr:{{ service_ports.flaresolverr }}/"
@@ -160,7 +160,7 @@
       {{ _schema | combine({
            'enable': true,
            'appProfileId': 1,
-           'tags': [flaresolverr_tag_id | int] if item.flaresolverr | default(false) else []
+           'tags': [prowlarr_flaresolverr_tag_id | int] if item.flaresolverr | default(false) else []
          }) }}
     status_code: 201
   loop: "{{ prowlarr_indexers }}"
@@ -187,7 +187,12 @@
     headers:
       X-Api-Key: "{{ prowlarr_api_key }}"
     body_format: json
-    body: "{{ item | combine({'fields': _other_fields + [_updated_seed_field]}) }}"
+    body: >-
+      {{ item | combine({'fields':
+           (item.fields | rejectattr('name', 'equalto', _seed_field) | list)
+           + [(item.fields | selectattr('name', 'equalto', _seed_field) | first)
+              | combine({'value': prowlarr_min_seeders | int})]
+         }) }}
     status_code: 202
   loop: "{{ prowlarr_managed_indexers.json | default([]) }}"
   loop_control:
@@ -195,8 +200,6 @@
   vars:
     _seed_field: torrentBaseSettings.appMinimumSeeders
     _seed_entries: "{{ item.fields | selectattr('name', 'equalto', _seed_field) | list }}"
-    _other_fields: "{{ item.fields | rejectattr('name', 'equalto', _seed_field) | list }}"
-    _updated_seed_field: "{{ _seed_entries[0] | default({}) | combine({'value': prowlarr_min_seeders | int}) }}"
   when:
     - prowlarr_indexers | length > 0
     - _seed_entries | length > 0

@@ -2,14 +2,14 @@
 # --- Packages ---
 - name: Update and upgrade apt packages
   become: true
-  apt:
-    upgrade: yes
-    update_cache: yes
-    cache_valid_time: 86400 #One day
+  ansible.builtin.apt:
+    upgrade: true
+    update_cache: true
+    cache_valid_time: 86400 # One day
 
 - name: Install common packages
   become: true
-  apt:
+  ansible.builtin.apt:
     name:
       - ufw
       - samba
@@ -17,7 +17,7 @@
 
 # --- Storage ---
 - name: Mount NVMe disk
-  ansible.builtin.mount:
+  ansible.posix.mount:
     src: "/dev/disk/by-uuid/{{ nvme_uuid }}"
     path: "/mnt/nvme"
     fstype: "ext4"

@@ -1,7 +1,7 @@
 ---
 - name: Apply host roles
   hosts: all
-  become: yes
+  become: true
   tasks:
     - name: Include roles defined in host_roles
       ansible.builtin.include_role:

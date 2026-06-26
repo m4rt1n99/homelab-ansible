@@ -8,8 +8,9 @@
     shell: /usr/sbin/nologin
 
 - name: Set samba password for user
-  ansible.builtin.shell: >
-    (echo "{{ smb_password }}"; echo "{{ smb_password }}") | smbpasswd -s -a nas
+  ansible.builtin.command:
+    cmd: smbpasswd -s -a nas
+    stdin: "{{ smb_password }}\n{{ smb_password }}"
   changed_when: false
   no_log: true
 

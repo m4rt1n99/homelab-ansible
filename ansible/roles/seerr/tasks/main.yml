@@ -66,7 +66,7 @@
       port: "{{ service_ports.jellyfin }}"
       urlBase: ""
       useSsl: false
-      serverType: 2 
+      serverType: 2
     status_code: [200, 201]
   register: seerr_auth
   until: seerr_auth.status in [200, 201]
