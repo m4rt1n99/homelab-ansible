@@ -1,0 +1,6 @@
+---
+- name: Restart soulsync
+  ansible.builtin.systemd:
+    name: soulsync
+    state: restarted
+  become: true

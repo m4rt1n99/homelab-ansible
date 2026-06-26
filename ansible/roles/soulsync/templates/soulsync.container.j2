@@ -1,0 +1,34 @@
+[Unit]
+Description=SoulSync - Music discovery & download automation
+
+[Container]
+# Image
+Image=docker.io/boulderbadgedad/soulsync:latest
+ContainerName=soulsync
+
+# Networking
+Network=vps-services.network
+PublishPort={{ service_ports.soulsync }}:8008
+
+# Environment
+Environment=PUID={{ media_puid }}
+Environment=PGID={{ media_pgid }}
+Environment=UMASK=022
+Environment=TZ=Europe/Prague
+Environment=PYTHONPATH=/app
+Environment=SOULSYNC_CONFIG_PATH=/app/config/config.json
+
+# Storage
+Volume=/mnt/nvme/services/soulsync/config:/app/config
+Volume=/mnt/nvme/services/soulsync/data:/app/data
+Volume=/mnt/nvme/services/soulsync/logs:/app/logs
+# Read completed Soulseek downloads (shared with slskd/musicgrabber).
+Volume=/mnt/nvme/media/slskd_downloads:/app/downloads
+# Organized output lands directly in the Navidrome library.
+Volume=/mnt/nvme/media/navidrome:/app/Transfer
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target default.target

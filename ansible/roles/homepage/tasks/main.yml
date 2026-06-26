@@ -31,6 +31,7 @@
   loop:
     - immich
     - jellyfin
+    - seerr
   register: widget_api_key_files
 
 - name: Read persisted widget API keys
@@ -46,13 +47,16 @@
   ansible.builtin.set_fact:
     immich_api_key: "{{ widget_api_key_slurps.results | selectattr('item.item', 'equalto', 'immich') | selectattr('content', 'defined') | map(attribute='content') | first | default('') | b64decode | trim }}"
     jellyfin_api_key: "{{ widget_api_key_slurps.results | selectattr('item.item', 'equalto', 'jellyfin') | selectattr('content', 'defined') | map(attribute='content') | first | default('') | b64decode | trim }}"
+    seerr_api_key: "{{ widget_api_key_slurps.results | selectattr('item.item', 'equalto', 'seerr') | selectattr('content', 'defined') | map(attribute='content') | first | default('') | b64decode | trim }}"
 
 - name: Deploy homepage config
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "/mnt/nvme/services/homepage/config/{{ item.dest }}"
     mode: '0644'
+    force: true
   loop:
+    - { src: homepage-bookmarks.yaml.j2, dest: bookmarks.yaml }
     - { src: homepage-services.yaml.j2, dest: services.yaml }
     - { src: homepage-settings.yaml.j2, dest: settings.yaml }
     - { src: homepage-custom.css.j2, dest: custom.css }

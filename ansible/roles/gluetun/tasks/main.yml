@@ -1,5 +1,19 @@
 ---
 
+# --- Recover orphaned state ---
+- name: Check gluetun service state
+  ansible.builtin.systemd:
+    name: gluetun.service
+  register: gluetun_state
+  failed_when: false
+
+- name: Remove orphaned gluetun container and its dependents
+  ansible.builtin.command:
+    cmd: podman rm --force --ignore --depend gluetun
+  register: gluetun_orphan_rm
+  changed_when: gluetun_orphan_rm.stdout | trim | length > 0
+  when: gluetun_state.status.ActiveState | default('inactive') != 'active'
+
 # --- Directories ---
 - name: Create gluetun directories
   ansible.builtin.file:

@@ -1,0 +1,76 @@
+---
+# --- Directories ---
+# Owned by the container user (PUID/PGID) so SoulSync can write its config/db/logs.
+- name: Create soulsync directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ media_puid }}"
+    group: "{{ media_pgid }}"
+    mode: '0755'
+  loop:
+    - /mnt/nvme/services/soulsync
+    - /mnt/nvme/services/soulsync/config
+    - /mnt/nvme/services/soulsync/data
+    - /mnt/nvme/services/soulsync/logs
+
+# --- Config (first boot only) ---
+# SoulSync reads config.json only on first boot; it migrates the values into its
+# database (/app/data/music_library.db, key metadata.app_config) which is the
+# source of truth thereafter. So seed it BEFORE the container first starts, and
+# never overwrite it (force: false) — manage settings in the web UI from then on.
+- name: Seed soulsync config (first boot only)
+  ansible.builtin.template:
+    src: soulsync-config.json.j2
+    dest: /mnt/nvme/services/soulsync/config/config.json
+    mode: '0644'
+    force: false
+
+# --- Deploy ---
+- name: Deploy soulsync container Quadlet
+  ansible.builtin.template:
+    src: soulsync.container.j2
+    dest: /etc/containers/systemd/soulsync.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart soulsync
+
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
+
+- name: Start soulsync service
+  ansible.builtin.systemd:
+    name: soulsync
+    state: started
+    enabled: true
+
+# --- Quality profile (audiophile / FLAC-only) ---
+# The Soulseek quality profile lives in the app DB (metadata.quality_profile), not
+# config.json, so it can't be seeded from the config template. Apply it via the API
+# on every run to keep it declarative. NOTE: this re-asserts the preset on each
+# deploy, overriding any quality-profile change made in the web UI.
+- name: Wait for soulsync API to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ service_ports.soulsync }}/api/quality-profile"
+    method: GET
+    status_code: 200
+  register: soulsync_qp
+  retries: 30
+  delay: 2
+  until: soulsync_qp.status == 200
+
+- name: Apply audiophile (FLAC-only) quality profile
+  ansible.builtin.uri:
+    url: "http://localhost:{{ service_ports.soulsync }}/api/quality-profile/preset/audiophile"
+    method: POST
+    status_code: 200
+
+# --- Firewall ---
+- name: Allow soulsync ports through UFW
+  community.general.ufw:
+    rule: allow
+    route: true   # published ports are DNAT'd to the container; routed via FORWARD, not INPUT
+    port: "{{ service_ports.soulsync }}"
+    proto: tcp
+  notify: Reload ufw

@@ -1,0 +1,232 @@
+---
+
+# --- Directories ---
+# Owned by the 'node' user (UID 1000 == media_puid) so Seerr can write
+# settings.json and its SQLite database.
+- name: Create seerr config directory
+  ansible.builtin.file:
+    path: /mnt/nvme/services/seerr
+    state: directory
+    owner: "{{ media_puid }}"
+    group: "{{ media_pgid }}"
+    mode: '0755'
+
+# --- Deploy ---
+- name: Deploy seerr container Quadlet
+  ansible.builtin.template:
+    src: seerr.container.j2
+    dest: /etc/containers/systemd/seerr.container
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart seerr
+
+- name: Reload systemd to register new units
+  ansible.builtin.meta: flush_handlers
+
+- name: Start seerr service
+  ansible.builtin.systemd:
+    name: seerr
+    state: started
+    enabled: true
+
+# --- Firewall ---
+- name: Allow seerr port through UFW
+  community.general.ufw:
+    rule: allow
+    route: true   # published ports are DNAT'd to the container; routed via FORWARD, not INPUT
+    port: "{{ service_ports.seerr }}"
+    proto: tcp
+  notify: Reload ufw
+
+# --- First-run setup ---
+# Fully automated, mirroring the jellyfin role: no browser wizard. Seerr reaches
+# Jellyfin/Radarr/Sonarr by container name over vps-services.network, so hostnames
+# are container names, not 127.0.0.1.
+- name: Wait for seerr to report its public settings
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/settings/public"
+    status_code: 200
+  register: seerr_public
+  until: seerr_public.status == 200
+  retries: 30
+  delay: 5
+
+# Signing in with a Jellyfin admin on a fresh install creates the Seerr owner and
+# stores the Jellyfin connection. The jellyfin role already provisioned this admin.
+- name: Sign in to seerr with the Jellyfin admin account
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/auth/jellyfin"
+    method: POST
+    body_format: json
+    body:
+      username: "{{ jellyfin_username }}"
+      password: "{{ jellyfin_password }}"
+      hostname: "jellyfin"
+      port: "{{ service_ports.jellyfin }}"
+      urlBase: ""
+      useSsl: false
+      serverType: 2 
+    status_code: [200, 201]
+  register: seerr_auth
+  until: seerr_auth.status in [200, 201]
+  retries: 15
+  delay: 5
+  when: not (seerr_public.json.initialized | default(false))
+
+# Seerr generates its own API key (settings.main.apiKey) on first boot; reading it
+# from disk avoids any manual copy-paste. Once the owner exists (above), this key
+# authenticates as admin via the X-Api-Key header.
+- name: Read the seerr API key from settings.json
+  ansible.builtin.slurp:
+    src: /mnt/nvme/services/seerr/settings.json
+  register: seerr_settings_raw
+
+- name: Expose the seerr API key as a fact
+  ansible.builtin.set_fact:
+    seerr_api_key: "{{ (seerr_settings_raw.content | b64decode | from_json).main.apiKey }}"
+
+# Persist on the host so the homepage role can read it without seerr running in the same play.
+- name: Persist the seerr API key on the host
+  ansible.builtin.copy:
+    content: "{{ seerr_api_key }}"
+    dest: /mnt/nvme/services/seerr/homepage_api_key
+    mode: '0600'
+
+- name: Sync seerr Jellyfin libraries
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/settings/jellyfin/library?sync=true"
+    headers:
+      X-Api-Key: "{{ seerr_api_key }}"
+    status_code: 200
+  register: seerr_libraries
+
+- name: Enable all seerr Jellyfin libraries
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/settings/jellyfin/library?enable={{ seerr_libraries.json | map(attribute='id') | join(',') }}"
+    headers:
+      X-Api-Key: "{{ seerr_api_key }}"
+    status_code: 200
+  when: seerr_libraries.json | length > 0
+
+# --- Configure Radarr ---
+- name: Probe Radarr connection through seerr
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/settings/radarr/test"
+    method: POST
+    headers:
+      X-Api-Key: "{{ seerr_api_key }}"
+    body_format: json
+    body:
+      hostname: "radarr"
+      port: "{{ service_ports.radarr }}"
+      apiKey: "{{ radarr_api_key }}"
+      useSsl: false
+    status_code: 200
+  register: seerr_radarr_test
+
+# Resolve the configured profile name to its object, falling back to the first profile.
+- name: Select the Radarr quality profile
+  ansible.builtin.set_fact:
+    seerr_radarr_profile: >-
+      {{ seerr_radarr_test.json.profiles
+         | selectattr('name', 'equalto', seerr_radarr_quality_profile) | list | first
+         | default(seerr_radarr_test.json.profiles | first) }}
+
+- name: Get existing seerr Radarr servers
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/settings/radarr"
+    headers:
+      X-Api-Key: "{{ seerr_api_key }}"
+    status_code: 200
+  register: seerr_radarr_servers
+
+- name: Add Radarr server to seerr
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/settings/radarr"
+    method: POST
+    headers:
+      X-Api-Key: "{{ seerr_api_key }}"
+    body_format: json
+    body:
+      name: "Radarr"
+      hostname: "radarr"
+      port: "{{ service_ports.radarr }}"
+      apiKey: "{{ radarr_api_key }}"
+      useSsl: false
+      baseUrl: ""
+      activeProfileId: "{{ seerr_radarr_profile.id }}"
+      activeProfileName: "{{ seerr_radarr_profile.name }}"
+      activeDirectory: "/data/library/movies"   # Radarr's internal root folder
+      is4k: false
+      minimumAvailability: "released"
+      isDefault: true
+      syncEnabled: true
+    status_code: 201
+  when: seerr_radarr_servers.json | selectattr('hostname', 'equalto', 'radarr') | list | length == 0
+
+# --- Configure Sonarr ---
+- name: Probe Sonarr connection through seerr
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/settings/sonarr/test"
+    method: POST
+    headers:
+      X-Api-Key: "{{ seerr_api_key }}"
+    body_format: json
+    body:
+      hostname: "sonarr"
+      port: "{{ service_ports.sonarr }}"
+      apiKey: "{{ sonarr_api_key }}"
+      useSsl: false
+    status_code: 200
+  register: seerr_sonarr_test
+
+- name: Select the Sonarr quality profile
+  ansible.builtin.set_fact:
+    seerr_sonarr_profile: >-
+      {{ seerr_sonarr_test.json.profiles
+         | selectattr('name', 'equalto', seerr_sonarr_quality_profile) | list | first
+         | default(seerr_sonarr_test.json.profiles | first) }}
+
+- name: Get existing seerr Sonarr servers
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/settings/sonarr"
+    headers:
+      X-Api-Key: "{{ seerr_api_key }}"
+    status_code: 200
+  register: seerr_sonarr_servers
+
+- name: Add Sonarr server to seerr
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/settings/sonarr"
+    method: POST
+    headers:
+      X-Api-Key: "{{ seerr_api_key }}"
+    body_format: json
+    body:
+      name: "Sonarr"
+      hostname: "sonarr"
+      port: "{{ service_ports.sonarr }}"
+      apiKey: "{{ sonarr_api_key }}"
+      useSsl: false
+      baseUrl: ""
+      activeProfileId: "{{ seerr_sonarr_profile.id }}"
+      activeProfileName: "{{ seerr_sonarr_profile.name }}"
+      activeDirectory: "/data/library/tv"   # Sonarr's internal root folder
+      activeLanguageProfileId: 0   # unused by Sonarr v4; harmless for v3
+      enableSeasonFolders: true
+      is4k: false
+      isDefault: true
+      syncEnabled: true
+    status_code: 201
+  when: seerr_sonarr_servers.json | selectattr('hostname', 'equalto', 'sonarr') | list | length == 0
+
+# --- Finish setup ---
+- name: Mark seerr setup as complete
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ service_ports.seerr }}/api/v1/settings/initialize"
+    method: POST
+    headers:
+      X-Api-Key: "{{ seerr_api_key }}"
+    status_code: 200
+  when: not (seerr_public.json.initialized | default(false))

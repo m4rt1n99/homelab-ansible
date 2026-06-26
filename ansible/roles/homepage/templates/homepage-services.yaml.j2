@@ -14,6 +14,12 @@
           token: {{ navidrome_token }}
           salt: {{ navidrome_salt }}
 
+    - SoulSync:
+        icon: sh-soulsync.png
+        href: "{{ base_url }}:{{ service_ports.soulsync }}"
+        description: Music discovery & downloader
+        siteMonitor: "{{ base_url }}:{{ service_ports.soulsync }}"
+
     - MusicGrabber:
         icon: sh-music-grabber.png
         href: "{{ base_url }}:{{ service_ports.musicgrabber }}"
@@ -44,6 +50,18 @@
           enableBlocks: true
           enableNowPlaying: false
           enableMediaControl: false
+{% endif %}
+
+    - Seerr:
+        icon: jellyseerr.png
+        href: "{{ base_url }}:{{ service_ports.seerr }}"
+        description: Request & discovery
+{% if seerr_api_key %}
+        widget:
+          type: seerr
+          url: "{{ base_url }}:{{ service_ports.seerr }}"
+          key: {{ seerr_api_key }}
+          fields: ["pending", "approved", "available"]
 {% endif %}
 
     - Radarr:
