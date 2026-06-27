@@ -74,9 +74,11 @@
   delay: 5
   when: not (seerr_public.json.initialized | default(false))
 
-# Seerr generates its own API key (settings.main.apiKey) on first boot; reading it
-# from disk avoids any manual copy-paste. Once the owner exists (above), this key
-# authenticates as admin via the X-Api-Key header.
+- name: Wait for seerr to write its settings.json
+  ansible.builtin.wait_for:
+    path: /mnt/nvme/services/seerr/settings.json
+    timeout: 60
+
 - name: Read the seerr API key from settings.json
   ansible.builtin.slurp:
     src: /mnt/nvme/services/seerr/settings.json
