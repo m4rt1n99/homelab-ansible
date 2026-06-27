@@ -163,6 +163,7 @@
            'tags': [prowlarr_flaresolverr_tag_id | int] if item.flaresolverr | default(false) else []
          }) }}
     status_code: 201
+    timeout: 120
   loop: "{{ prowlarr_indexers }}"
   loop_control:
     label: "{{ item.name }}"
@@ -170,6 +171,19 @@
     _name_re: "(?i)^{{ item.name | regex_escape }}$"
     _schema: "{{ prowlarr_schema.json | selectattr('name', 'regex', _name_re) | first }}"
   when: prowlarr_existing_indexers.json | selectattr('name', 'regex', _name_re) | list | length == 0
+  register: prowlarr_added
+  retries: 3
+  delay: 5
+  until: prowlarr_added is success
+  ignore_errors: true
+
+- name: Warn about indexers that could not be added
+  ansible.builtin.debug:
+    msg: "Failed to add indexer '{{ item.item.name }}': {{ item.msg | default('unknown error') }}"
+  loop: "{{ prowlarr_added.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.failed | default(false)
 
 - name: Re-fetch prowlarr indexers
   ansible.builtin.uri:
