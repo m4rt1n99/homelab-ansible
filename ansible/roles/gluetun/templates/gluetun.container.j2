@@ -1,5 +1,6 @@
 [Unit]
 Description=Gluetun - VPN client for the torrent stack
+Upholds=qbittorrent.service
 
 [Container]
 # Image
@@ -12,6 +13,7 @@ PublishPort={{ service_ports.qbittorrent_published }}:{{ service_ports.qbittorre
 
 # Capabilities
 AddCapability=NET_ADMIN
+AddCapability=NET_RAW
 AddDevice=/dev/net/tun:/dev/net/tun
 
 # Environment
@@ -19,6 +21,7 @@ Environment=VPN_SERVICE_PROVIDER=mullvad
 Environment=VPN_TYPE=wireguard
 Environment=WIREGUARD_PRIVATE_KEY={{ vpn_wireguard_private_key }}
 Environment=WIREGUARD_ADDRESSES={{ vpn_wireguard_addresses }}
+Environment=WIREGUARD_MTU=1280
 Environment=SERVER_COUNTRIES={{ vpn_server_countries | join(",") }}
 Environment=TZ=Europe/Prague
 

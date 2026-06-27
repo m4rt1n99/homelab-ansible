@@ -144,6 +144,33 @@
     no_extra_spaces: true
     mode: '0644'
 
+- name: Bind qBittorrent to the gluetun VPN interface (tun0)
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: BitTorrent
+    option: 'Session\Interface'
+    value: 'tun0'
+    no_extra_spaces: true
+    mode: '0644'
+
+- name: Set qBittorrent VPN interface system name (tun0)
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: BitTorrent
+    option: 'Session\InterfaceName'
+    value: 'tun0'
+    no_extra_spaces: true
+    mode: '0644'
+
+- name: Bind qBittorrent to all IPv4 addresses on the VPN interface
+  community.general.ini_file:
+    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+    section: BitTorrent
+    option: 'Session\InterfaceAddress'
+    value: '0.0.0.0'            # All IPv4; avoids IPv6 "Operation not permitted" (gluetun blocks IPv6)
+    no_extra_spaces: true
+    mode: '0644'
+
 - name: Seed qBittorrent download categories
   ansible.builtin.template:
     src: qbittorrent-categories.json.j2

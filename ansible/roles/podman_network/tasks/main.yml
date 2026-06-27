@@ -32,3 +32,19 @@
     dest: /etc/containers/systemd/vps-services.network
     mode: '0644'
   notify: Reload systemd
+
+- name: Reload systemd to register the network unit
+  ansible.builtin.meta: flush_handlers
+
+- name: Check whether the vps-services network exists
+  ansible.builtin.command: podman network exists vps-services
+  register: vps_services_network
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Create the vps-services network
+  ansible.builtin.systemd:
+    name: vps-services-network
+    state: "{{ 'started' if vps_services_network.rc == 0 else 'restarted' }}"
+  become: true

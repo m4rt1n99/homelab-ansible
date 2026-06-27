@@ -15,10 +15,6 @@
     - /mnt/nvme/services/soulsync/logs
 
 # --- Config (first boot only) ---
-# SoulSync reads config.json only on first boot; it migrates the values into its
-# database (/app/data/music_library.db, key metadata.app_config) which is the
-# source of truth thereafter. So seed it BEFORE the container first starts, and
-# never overwrite it (force: false) — manage settings in the web UI from then on.
 - name: Seed soulsync config (first boot only)
   ansible.builtin.template:
     src: soulsync-config.json.j2

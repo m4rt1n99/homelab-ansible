@@ -25,6 +25,9 @@ Volume=/mnt/nvme/media/video:/data
 
 [Service]
 Restart=always
+# Don't start until the VPN tunnel has an address, otherwise qBittorrent binds to
+# a missing tun0 and every peer/tracker fails "Operation not permitted".
+ExecStartPre=/usr/bin/timeout 90 sh -c 'until /usr/bin/podman exec gluetun ip -o -4 addr show tun0 2>/dev/null | grep -q "inet "; do sleep 1; done'
 
 [Install]
 WantedBy=multi-user.target default.target
