@@ -18,7 +18,7 @@
 # --- Storage ---
 - name: Mount NVMe disk
   ansible.posix.mount:
-    src: "/dev/disk/by-uuid/{{ nvme_uuid }}"
+    src: "/dev/disk/by-partuuid/{{ nvme_partuuid }}"
     path: "/mnt/nvme"
     fstype: "ext4"
     opts: "defaults,nofail"

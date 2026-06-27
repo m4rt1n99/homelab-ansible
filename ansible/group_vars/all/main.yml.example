@@ -33,8 +33,8 @@ smb_username: "CHANGE_ME"
 smb_password: "CHANGE_ME"
 
 
-# Replace this with the actual UUID of the NVMe drive you want to use for the ZFS pool. You can find it using `lsblk -o NAME,UUID` on the target host.
-nvme_uuid: "CHANGE_ME"
+# Replace this with the actual PARTUUID of the NVMe drive you want to use for the ZFS pool. You can find it using `lsblk -o NAME,PARTUUID` on the target host.
+nvme_partuuid: "CHANGE_ME"
 
 # Replace these with the actual PARTUUIDs of the disks you want to use for the ZFS pool. You can find them using `lsblk -o NAME,PARTUUID` on the target host.
 zfs_disk1_partuuid: "CHANGE_ME"
@@ -54,7 +54,7 @@ base_url: "http://CHANGE_ME"
 # port, not these values, so the two only differ when the host port is taken
 # (see qbittorrent below).
 service_ports:
-  homepage: 3000
+  homepage: 80
   musicgrabber: 8080
   slskd: 5030
   navidrome: 4533
