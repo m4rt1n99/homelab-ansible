@@ -1,0 +1,21 @@
+---
+# Info widgets (top of the dashboard).
+# https://gethomepage.dev/configs/info-widgets/
+# No `search` widget here, which removes homepage's default search bar.
+
+- resources:
+    label: System
+    cpu: true
+    memory: true
+
+- resources:
+    label: Internal
+    disk: /mnt/host
+
+- resources:
+    label: NVMe
+    disk: /mnt/nvme
+
+- resources:
+    label: Storage Pool
+    disk: /mnt/storage

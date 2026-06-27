@@ -15,6 +15,10 @@ Environment=HOMEPAGE_ALLOWED_HOSTS=*
 
 # Storage
 Volume=/mnt/nvme/services/homepage/config:/app/config
+# Read-only mounts so the resources info widgets can report disk usage via `df`.
+Volume=/:/mnt/host:ro
+Volume=/mnt/nvme:/mnt/nvme:ro
+Volume=/mnt/storage:/mnt/storage:ro
 
 [Service]
 Restart=always

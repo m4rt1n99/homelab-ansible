@@ -66,6 +66,7 @@
     - { src: homepage-bookmarks.yaml.j2, dest: bookmarks.yaml }
     - { src: homepage-services.yaml.j2, dest: services.yaml }
     - { src: homepage-settings.yaml.j2, dest: settings.yaml }
+    - { src: homepage-widgets.yaml.j2, dest: widgets.yaml }
     - { src: homepage-custom.css.j2, dest: custom.css }
   notify: Restart homepage
 
