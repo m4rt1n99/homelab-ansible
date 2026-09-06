@@ -29,12 +29,20 @@ sudo chmod 440 /etc/sudoers.d/ansible
 sudo passwd -l ansible
 ```
 
-5. Create and setup main.yml
+5. Install the required Ansible collections (from the ansible directory).
+
 ```bash
+ansible-galaxy collection install -r requirements.yml
+```
+
+6. Create the inventory and variables from the examples, then edit both (replace every `CHANGE_ME`).
+
+```bash
+cp inventory/hosts.yml.example inventory/hosts.yml
 cp group_vars/all/main.yml.example group_vars/all/main.yml
 ```
 
-6. Run the playbook from the ansible directory.
+7. Run the playbook from the ansible directory.
 
 ```bash
 ansible-playbook main.yml
