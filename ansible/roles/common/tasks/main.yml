@@ -1,14 +1,49 @@
 ---
+# --- Preflight ---
+# Fail fast on unconfigured group_vars instead of dying mid-play with confusing
+# errors (e.g. mounting a disk by a "CHANGE_ME" partuuid). Values are not printed.
+- name: Validate that required variables are configured
+  ansible.builtin.assert:
+    that:
+      - (lookup('vars', item, default='CHANGE_ME') | string) is not search('CHANGE_ME')
+    fail_msg: "Variable '{{ item }}' is not configured - edit group_vars/all/main.yml (see main.yml.example)."
+    quiet: true
+  loop:
+    - slskd_api_key
+    - prowlarr_api_key
+    - radarr_api_key
+    - sonarr_api_key
+    - soulseek_username
+    - soulseek_password
+    - slskd_username
+    - slskd_password
+    - navidrome_password
+    - navidrome_salt
+    - jellyfin_password
+    - qbittorrent_password
+    - immich_admin_email
+    - immich_admin_password
+    - immich_postgres_password
+    - sftp_username
+    - sftp_password
+    - smb_username
+    - smb_password
+    - nvme_partuuid
+    - zfs_disk1_partuuid
+    - zfs_disk2_partuuid
+    - base_url
+    - vpn_wireguard_private_key
+    - vpn_wireguard_addresses
+    - vpn_server_countries
+
 # --- Packages ---
 - name: Update and upgrade apt packages
-  become: true
   ansible.builtin.apt:
     upgrade: true
     update_cache: true
     cache_valid_time: 86400 # One day
 
 - name: Install common packages
-  become: true
   ansible.builtin.apt:
     name:
       - ufw
@@ -31,12 +66,13 @@
     policy: deny
 
 # Podman publishes ports via DNAT, so inbound traffic to containers traverses the
-# FORWARD chain. UFW defaults that chain to DROP, which blocks all published
-# container ports. Allow routed traffic so published ports are reachable.
+# FORWARD chain, which UFW controls with the "routed" policy. Default-deny it so
+# a published port is only reachable when a role explicitly allows it with a
+# `route: true` rule (container egress is allowed by the podman_network role).
 - name: Configure UFW default routed (forward) policy
   community.general.ufw:
     direction: routed
-    policy: allow
+    policy: deny
 
 - name: Allow SSH
   community.general.ufw:

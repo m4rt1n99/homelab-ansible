@@ -10,7 +10,7 @@
         widget:
           type: navidrome
           url: "{{ base_url }}:{{ service_ports.navidrome }}"
-          user: admin
+          user: {{ navidrome_username }}
           token: {{ homepage_navidrome_token }}
           salt: {{ navidrome_salt }}
 

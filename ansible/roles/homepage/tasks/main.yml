@@ -56,15 +56,17 @@
     - jellyfin
     - seerr
 
+# services.yaml is 0600: it embeds API keys and the qBittorrent password
+# (the rootful container reads it as root, so 0600 is enough).
 - name: Deploy homepage config
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "/mnt/nvme/services/homepage/config/{{ item.dest }}"
-    mode: '0644'
+    mode: "{{ item.mode | default('0644') }}"
     force: true
   loop:
     - { src: homepage-bookmarks.yaml.j2, dest: bookmarks.yaml }
-    - { src: homepage-services.yaml.j2, dest: services.yaml }
+    - { src: homepage-services.yaml.j2, dest: services.yaml, mode: '0600' }
     - { src: homepage-settings.yaml.j2, dest: settings.yaml }
     - { src: homepage-widgets.yaml.j2, dest: widgets.yaml }
     - { src: homepage-custom.css.j2, dest: custom.css }
@@ -84,6 +86,6 @@
   community.general.ufw:
     rule: allow
     route: true   # published port is DNAT'd to the container; routed via FORWARD, not INPUT
-    port: "{{ service_ports.homepage }}"
+    port: "3000"
     proto: tcp
   notify: Reload ufw

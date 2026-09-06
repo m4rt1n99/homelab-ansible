@@ -8,14 +8,12 @@
       - slirp4netns
     state: present
     update_cache: true
-  become: true
 
 - name: Ensure Quadlet directory exists
   ansible.builtin.file:
     path: /etc/containers/systemd
     state: directory
     mode: '0755'
-  become: true
 
 # --- Firewall ---
 - name: Allow traffic from Podman containers to host
@@ -23,6 +21,18 @@
     rule: allow
     from_ip: 10.88.0.0/14
     comment: Podman containers to host (DNS, node_exporter, etc.)
+  notify: Reload ufw
+
+# The default routed policy is deny (common role), which would also block
+# container-originated forwards. Allow anything sourced from the container
+# subnets: VPN handshake, indexers, and inter-container traffic. Inbound to
+# published ports stays gated by each role's own `route: true` rule.
+- name: Allow container egress through the routed (forward) chain
+  community.general.ufw:
+    rule: allow
+    route: true
+    from_ip: 10.88.0.0/14
+    comment: Container egress (VPN, indexers, inter-container)
   notify: Reload ufw
 
 # --- Network ---
@@ -38,13 +48,11 @@
 
 - name: Check whether the vps-services network exists
   ansible.builtin.command: podman network exists vps-services
-  register: vps_services_network
+  register: podman_network_check
   changed_when: false
   failed_when: false
-  become: true
 
 - name: Create the vps-services network
   ansible.builtin.systemd:
     name: vps-services-network
-    state: "{{ 'started' if vps_services_network.rc == 0 else 'restarted' }}"
-  become: true
+    state: "{{ 'started' if podman_network_check.rc == 0 else 'restarted' }}"

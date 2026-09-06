@@ -16,7 +16,9 @@ Environment=HOMEPAGE_ALLOWED_HOSTS=*
 # Storage
 Volume=/mnt/nvme/services/homepage/config:/app/config
 # Read-only mounts so the resources info widgets can report disk usage via `df`.
-Volume=/:/mnt/host:ro
+# df stats are per-filesystem, so binding an (empty) dir on the root FS reports
+# root-disk usage without exposing the whole host tree to the container.
+Volume=/srv:/mnt/host:ro
 Volume=/mnt/nvme:/mnt/nvme:ro
 Volume=/mnt/storage:/mnt/storage:ro
 
