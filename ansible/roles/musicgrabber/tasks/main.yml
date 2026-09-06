@@ -14,7 +14,7 @@
   ansible.builtin.template:
     src: musicgrabber.container.j2
     dest: /etc/containers/systemd/musicgrabber.container
-    mode: '0644'
+    mode: '0600'   # contains navidrome/slskd credentials; quadlet reads it as root
   notify:
     - Reload systemd
     - Restart musicgrabber
@@ -37,5 +37,5 @@
     proto: tcp
   loop:
     - "{{ service_ports.musicgrabber }}"   # web UI
-    - "38274"
+    - "38274"                              # fixed auxiliary app port (upstream image default)
   notify: Reload ufw

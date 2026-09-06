@@ -38,11 +38,14 @@
     state: started
     enabled: true
 
+# 0600 + container-user ownership: the file carries Soulseek/API credentials.
 - name: Deploy slskd config
   ansible.builtin.blockinfile:
     path: /mnt/nvme/services/slskd/slskd.yml
     create: true
-    mode: '0644'
+    owner: "{{ media_puid }}"
+    group: "{{ media_pgid }}"
+    mode: '0600'
     insertafter: EOF
     marker: "# {mark} ANSIBLE MANAGED BLOCK slskd"
     block: "{{ lookup('template', 'slskd-config.yml.j2') }}"

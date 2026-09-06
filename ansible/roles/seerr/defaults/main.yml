@@ -1,6 +1,6 @@
 ---
 # Quality profile names Seerr assigns to the Radarr/Sonarr servers it provisions.
 # They must match a profile that exists in Radarr/Sonarr (the name is resolved to
-# an ID via each app's /test response); override to match your profilarr setup.
+# an ID via each app's /test response); override to match your quality profiles.
 seerr_radarr_quality_profile: "HD-1080p"
 seerr_sonarr_quality_profile: "HD-1080p"

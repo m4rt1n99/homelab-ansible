@@ -72,6 +72,7 @@
   until: seerr_auth.status in [200, 201]
   retries: 15
   delay: 5
+  no_log: true   # body carries the Jellyfin admin password
   when: not (seerr_public.json.initialized | default(false))
 
 - name: Wait for seerr to write its settings.json
@@ -126,6 +127,7 @@
       useSsl: false
     status_code: 200
   register: seerr_radarr_test
+  no_log: true   # body carries the Radarr API key
 
 # Resolve the configured profile name to its object, falling back to the first profile.
 - name: Select the Radarr quality profile
@@ -165,6 +167,7 @@
       isDefault: true
       syncEnabled: true
     status_code: 201
+  no_log: true   # body carries the Radarr API key
   when: seerr_radarr_servers.json | selectattr('hostname', 'equalto', 'radarr') | list | length == 0
 
 # --- Configure Sonarr ---
@@ -182,6 +185,7 @@
       useSsl: false
     status_code: 200
   register: seerr_sonarr_test
+  no_log: true   # body carries the Sonarr API key
 
 - name: Select the Sonarr quality profile
   ansible.builtin.set_fact:
@@ -221,6 +225,7 @@
       isDefault: true
       syncEnabled: true
     status_code: 201
+  no_log: true   # body carries the Sonarr API key
   when: seerr_sonarr_servers.json | selectattr('hostname', 'equalto', 'sonarr') | list | length == 0
 
 # --- Finish setup ---

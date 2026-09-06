@@ -19,11 +19,13 @@
     - Reload systemd
     - Restart prowlarr
 
+# 0600: contains the API key. Ownership is left to the lsio init, which chowns
+# /config to PUID/PGID on the container (re)start this change notifies.
 - name: Deploy prowlarr config
   ansible.builtin.template:
     src: "prowlarr-config.xml.j2"
     dest: "/mnt/nvme/services/prowlarr/config.xml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart prowlarr
 
 - name: Reload systemd to register new units
@@ -133,21 +135,23 @@
   register: prowlarr_existing_indexers
   when: prowlarr_indexers | length > 0
 
-- name: Validate requested indexers exist in the schema
-  ansible.builtin.assert:
-    that:
-      - prowlarr_schema.json | selectattr('name', 'regex', _name_re) | list | length > 0
-    fail_msg: >-
-      Indexer '{{ item.name }}' was not found in Prowlarr's definition schema.
+# Broken/renamed indexers are a recurring situation, so skip them with a warning
+# instead of failing the whole play (the add task below also checks the schema).
+- name: Warn about indexers missing from the Prowlarr schema
+  ansible.builtin.debug:
+    msg: >-
+      Indexer '{{ item.name }}' was not found in Prowlarr's definition schema and will be skipped.
       List valid names with:
-      curl -s -H 'X-Api-Key: {{ prowlarr_api_key }}'
+      curl -s -H 'X-Api-Key: <prowlarr_api_key>'
       http://localhost:{{ service_ports.prowlarr }}/api/v1/indexer/schema | jq -r '.[].name' | sort
   loop: "{{ prowlarr_indexers }}"
   loop_control:
     label: "{{ item.name }}"
   vars:
     _name_re: "(?i)^{{ item.name | regex_escape }}$"
-  when: prowlarr_indexers | length > 0
+  when:
+    - prowlarr_indexers | length > 0
+    - prowlarr_schema.json | selectattr('name', 'regex', _name_re) | list | length == 0
 
 - name: Add prowlarr indexers
   ansible.builtin.uri:
@@ -170,7 +174,9 @@
   vars:
     _name_re: "(?i)^{{ item.name | regex_escape }}$"
     _schema: "{{ prowlarr_schema.json | selectattr('name', 'regex', _name_re) | first }}"
-  when: prowlarr_existing_indexers.json | selectattr('name', 'regex', _name_re) | list | length == 0
+  when:
+    - prowlarr_schema.json | selectattr('name', 'regex', _name_re) | list | length > 0
+    - prowlarr_existing_indexers.json | selectattr('name', 'regex', _name_re) | list | length == 0
   register: prowlarr_added
   retries: 3
   delay: 5
@@ -251,6 +257,7 @@
            ]
          } }}
     status_code: 201
+  no_log: true   # body carries the Radarr API key
   when: prowlarr_existing_applications.json | selectattr('name', 'equalto', 'Radarr') | list | length == 0
 
 - name: Add Sonarr application
@@ -276,4 +283,5 @@
            ]
          } }}
     status_code: 201
+  no_log: true   # body carries the Sonarr API key
   when: prowlarr_existing_applications.json | selectattr('name', 'equalto', 'Sonarr') | list | length == 0

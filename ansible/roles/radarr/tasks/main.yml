@@ -30,11 +30,13 @@
     - Reload systemd
     - Restart radarr
 
+# 0600: contains the API key. Ownership is left to the lsio init, which chowns
+# /config to PUID/PGID on the container (re)start this change notifies.
 - name: Deploy radarr config
   ansible.builtin.template:
     src: "radarr-config.xml.j2"
     dest: "/mnt/nvme/services/radarr/config.xml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart radarr
 
 - name: Reload systemd to register new units
@@ -122,4 +124,5 @@
         - name: "movieCategory"
           value: "movies"
     status_code: 201
+  no_log: true   # body carries the qBittorrent password
   when: radarr_download_clients.json | selectattr('name', 'equalto', 'qBittorrent') | list | length == 0

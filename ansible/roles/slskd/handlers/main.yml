@@ -3,4 +3,3 @@
   ansible.builtin.systemd:
     name: slskd
     state: restarted
-  become: true

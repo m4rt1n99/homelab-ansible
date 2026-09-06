@@ -3,4 +3,3 @@
   ansible.builtin.systemd:
     name: sonarr
     state: restarted
-  become: true

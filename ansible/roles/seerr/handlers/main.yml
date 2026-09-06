@@ -3,4 +3,3 @@
   ansible.builtin.systemd:
     name: seerr
     state: restarted
-  become: true

@@ -30,11 +30,13 @@
     - Reload systemd
     - Restart sonarr
 
+# 0600: contains the API key. Ownership is left to the lsio init, which chowns
+# /config to PUID/PGID on the container (re)start this change notifies.
 - name: Deploy sonarr config
   ansible.builtin.template:
     src: "sonarr-config.xml.j2"
     dest: "/mnt/nvme/services/sonarr/config.xml"
-    mode: '0644'
+    mode: '0600'
   notify: Restart sonarr
 
 - name: Reload systemd to register new units
@@ -122,4 +124,5 @@
         - name: "tvCategory"
           value: "tv"
     status_code: 201
+  no_log: true   # body carries the qBittorrent password
   when: sonarr_download_clients.json | selectattr('name', 'equalto', 'qBittorrent') | list | length == 0
