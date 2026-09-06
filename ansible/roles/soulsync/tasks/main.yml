@@ -13,13 +13,18 @@
     - /mnt/nvme/services/soulsync/config
     - /mnt/nvme/services/soulsync/data
     - /mnt/nvme/services/soulsync/logs
+    # Import staging: files dropped here (e.g. over the [Media] SMB share) are
+    # picked up by SoulSync's tag-first import and organized into the library.
+    - /mnt/nvme/media/soulsync_staging
 
 # --- Config (first boot only) ---
 - name: Seed soulsync config (first boot only)
   ansible.builtin.template:
     src: soulsync-config.json.j2
     dest: /mnt/nvme/services/soulsync/config/config.json
-    mode: '0644'
+    owner: "{{ media_puid }}"
+    group: "{{ media_pgid }}"
+    mode: '0600'   # contains the slskd API key and navidrome credentials
     force: false
 
 # --- Deploy ---
@@ -41,11 +46,18 @@
     state: started
     enabled: true
 
-# --- Quality profile (audiophile / FLAC-only) ---
+# --- Quality profile (balanced / FLAC-priority) ---
 # The Soulseek quality profile lives in the app DB (metadata.quality_profile), not
 # config.json, so it can't be seeded from the config template. Apply it via the API
 # on every run to keep it declarative. NOTE: this re-asserts the preset on each
 # deploy, overriding any quality-profile change made in the web UI.
+#
+# NOT "audiophile": that preset's ranked_targets are 24-bit FLAC only (192/96/48/44.1kHz)
+# with no 16-bit entry at all, so it rejects standard 16-bit/44.1kHz lossless FLAC —
+# i.e. the overwhelming majority of real-world FLAC libraries — both on Soulseek search
+# and (worse) during local import of already-lossless files, sending them to quarantine.
+# "balanced" keeps FLAC top priority (any bit depth) and only falls back to 256/320kbps
+# MP3 when no FLAC exists at all.
 - name: Wait for soulsync API to be ready
   ansible.builtin.uri:
     url: "http://localhost:{{ service_ports.soulsync }}/api/quality-profile"
@@ -56,9 +68,9 @@
   delay: 2
   until: soulsync_qp.status == 200
 
-- name: Apply audiophile (FLAC-only) quality profile
+- name: Apply balanced (FLAC-priority) quality profile
   ansible.builtin.uri:
-    url: "http://localhost:{{ service_ports.soulsync }}/api/quality-profile/preset/audiophile"
+    url: "http://localhost:{{ service_ports.soulsync }}/api/quality-profile/preset/balanced"
     method: POST
     status_code: 200
 

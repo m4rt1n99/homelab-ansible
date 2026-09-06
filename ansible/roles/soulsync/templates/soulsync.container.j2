@@ -9,6 +9,11 @@ ContainerName=soulsync
 # Networking
 Network=vps-services.network
 PublishPort={{ service_ports.soulsync }}:8008
+# Spotify OAuth callback. Bound to the Pi's loopback only: Spotify requires the
+# redirect_uri to be 127.0.0.1, so you reach it via an SSH tunnel from your PC
+# (ssh -L 8888:localhost:8888 ...) while connecting Spotify in the web UI.
+# See SoulSync Support/DOCKER-OAUTH-FIX.md. Deliberately no UFW rule for this.
+PublishPort=127.0.0.1:8888:8888
 
 # Environment
 Environment=PUID={{ media_puid }}
@@ -26,6 +31,13 @@ Volume=/mnt/nvme/services/soulsync/logs:/app/logs
 Volume=/mnt/nvme/media/slskd_downloads:/app/downloads
 # Organized output lands directly in the Navidrome library.
 Volume=/mnt/nvme/media/navidrome:/app/Transfer
+# Import staging: drop existing files here (reachable via the [Media] SMB share)
+# for SoulSync's tag-first import into the library.
+Volume=/mnt/nvme/media/soulsync_staging:/app/Staging
+# Read qBittorrent's completed downloads (same host path -> same container path as
+# qbittorrent/radarr/sonarr use, per the repo's convention — no remote path mapping).
+# Read-only: SoulSync only needs to find and import finished torrents here.
+Volume=/mnt/nvme/media/video:/data:ro
 
 [Service]
 Restart=always
