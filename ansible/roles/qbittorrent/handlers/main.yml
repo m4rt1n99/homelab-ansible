@@ -3,4 +3,3 @@
   ansible.builtin.systemd:
     name: qbittorrent
     state: restarted
-  become: true

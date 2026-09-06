@@ -40,25 +40,16 @@
     enabled: true
 
 # --- Configuration ---
+# qBittorrent rewrites its config files on shutdown, so edits only stick when the
+# service is stopped. To avoid interrupting downloads on every run, first detect
+# drift with check_mode while it runs, and only stop/edit/start when needed.
 - name: Wait for qBittorrent to generate config
   ansible.builtin.wait_for:
     path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
     timeout: 60
 
-- name: Stop qbittorrent
-  ansible.builtin.systemd:
-    name: qbittorrent
-    state: stopped
-
-- name: Disable WebUI host header validation
-  community.general.ini_file:
-    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
-    section: Preferences
-    option: 'WebUI\HostHeaderValidation'
-    value: 'false'
-    no_extra_spaces: true
-    mode: '0644'
-
+# The salt is derived from the password on purpose: the hash stays identical
+# between runs, so the drift check below is stable.
 - name: Generate qBittorrent WebUI password hash (PBKDF2-HMAC-SHA512)
   ansible.builtin.command:
     argv:
@@ -80,102 +71,80 @@
     qbittorrent_webui_password_hash: "{{ qbittorrent_pbkdf2.stdout }}"
   no_log: true
 
-- name: Set username for qBittorrent WebUI
+# Settings live in vars/main.yml (qbittorrent_conf_settings); the password is a
+# separate task pair so it can be no_log'd without hiding the other settings.
+- name: Check qBittorrent.conf settings for drift
   community.general.ini_file:
     path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
-    section: Preferences
-    option: 'WebUI\Username'
-    value: '{{ qbittorrent_username }}'
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
     no_extra_spaces: true
-    mode: '0644'
+    create: false
+  check_mode: true
+  loop: "{{ qbittorrent_conf_settings }}"
+  loop_control:
+    label: "{{ item.section }}/{{ item.option }}"
+  register: qbittorrent_conf_check
 
-- name: Set password for qBittorrent WebUI
+- name: Check qBittorrent WebUI password for drift
   community.general.ini_file:
     path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
     section: Preferences
     option: 'WebUI\Password_PBKDF2'
-    value: '{{ qbittorrent_webui_password_hash }}'
+    value: "{{ qbittorrent_webui_password_hash }}"
     no_extra_spaces: true
-    mode: '0644'
+    create: false
+  check_mode: true
   no_log: true
+  register: qbittorrent_password_check
 
-- name: Set qBittorrent default save path
-  community.general.ini_file:
-    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
-    section: BitTorrent
-    option: 'Session\DefaultSavePath'
-    value: '/data/torrents'
-    no_extra_spaces: true
-    mode: '0644'
-
-- name: Enable qBittorrent automatic torrent management by default
-  community.general.ini_file:
-    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
-    section: BitTorrent
-    option: 'Session\DisableAutoTMMByDefault'
-    value: 'false'
-    no_extra_spaces: true
-    mode: '0644'
-
-- name: Set qBittorrent global share ratio limit
-  community.general.ini_file:
-    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
-    section: BitTorrent
-    option: 'Session\GlobalMaxRatio'
-    value: '1'                  # stop seeding once upload/download ratio reaches 1:1
-    no_extra_spaces: true
-    mode: '0644'
-
-- name: Set qBittorrent global seeding time limit
-  community.general.ini_file:
-    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
-    section: BitTorrent
-    option: 'Session\GlobalMaxSeedingMinutes'
-    value: '1440'               # stop seeding after 1 day (whichever limit is hit first)
-    no_extra_spaces: true
-    mode: '0644'
-
-- name: Stop torrents when the share ratio or seeding time limit is reached
-  community.general.ini_file:
-    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
-    section: BitTorrent
-    option: 'Session\MaxRatioAction'
-    value: '0'                  # 0 = Stop torrent; Radarr/Sonarr then deletes it on cleanup
-    no_extra_spaces: true
-    mode: '0644'
-
-- name: Bind qBittorrent to the gluetun VPN interface (tun0)
-  community.general.ini_file:
-    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
-    section: BitTorrent
-    option: 'Session\Interface'
-    value: 'tun0'
-    no_extra_spaces: true
-    mode: '0644'
-
-- name: Set qBittorrent VPN interface system name (tun0)
-  community.general.ini_file:
-    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
-    section: BitTorrent
-    option: 'Session\InterfaceName'
-    value: 'tun0'
-    no_extra_spaces: true
-    mode: '0644'
-
-- name: Bind qBittorrent to all IPv4 addresses on the VPN interface
-  community.general.ini_file:
-    path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
-    section: BitTorrent
-    option: 'Session\InterfaceAddress'
-    value: '0.0.0.0'            # All IPv4; avoids IPv6 "Operation not permitted" (gluetun blocks IPv6)
-    no_extra_spaces: true
-    mode: '0644'
-
-- name: Seed qBittorrent download categories
+- name: Check qBittorrent download categories for drift
   ansible.builtin.template:
     src: qbittorrent-categories.json.j2
     dest: /mnt/nvme/services/qbittorrent/qBittorrent/categories.json
     mode: '0644'
+  check_mode: true
+  register: qbittorrent_categories_check
+
+- name: Apply qBittorrent configuration (stops the service only when needed)
+  when: >-
+    (qbittorrent_conf_check.results | selectattr('changed') | list | length > 0)
+    or qbittorrent_password_check is changed
+    or qbittorrent_categories_check is changed
+  block:
+    - name: Stop qbittorrent
+      ansible.builtin.systemd:
+        name: qbittorrent
+        state: stopped
+
+    - name: Apply qBittorrent.conf settings
+      community.general.ini_file:
+        path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        no_extra_spaces: true
+        create: false
+      loop: "{{ qbittorrent_conf_settings }}"
+      loop_control:
+        label: "{{ item.section }}/{{ item.option }}"
+
+    - name: Set password for qBittorrent WebUI
+      community.general.ini_file:
+        path: /mnt/nvme/services/qbittorrent/qBittorrent/qBittorrent.conf
+        section: Preferences
+        option: 'WebUI\Password_PBKDF2'
+        value: "{{ qbittorrent_webui_password_hash }}"
+        no_extra_spaces: true
+        create: false
+      no_log: true
+
+    - name: Seed qBittorrent download categories
+      ansible.builtin.template:
+        src: qbittorrent-categories.json.j2
+        dest: /mnt/nvme/services/qbittorrent/qBittorrent/categories.json
+        mode: '0644'
 
 - name: Start qbittorrent
   ansible.builtin.systemd:

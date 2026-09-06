@@ -1,0 +1,37 @@
+---
+# qBittorrent.conf settings enforced by this role. Used twice in tasks/main.yml:
+# once with check_mode to detect drift while qBittorrent runs, and once for real
+# after it is stopped (qBittorrent rewrites its config on shutdown, so live edits
+# would be lost). The WebUI password hash is kept out of this list so its task
+# can be no_log'd; values may reference facts computed before either pass runs.
+qbittorrent_conf_settings:
+  - section: Preferences
+    option: 'WebUI\HostHeaderValidation'
+    value: 'false'
+  - section: Preferences
+    option: 'WebUI\Username'
+    value: "{{ qbittorrent_username }}"
+  - section: BitTorrent
+    option: 'Session\DefaultSavePath'
+    value: '/data/torrents'
+  - section: BitTorrent                       # automatic torrent management on by default
+    option: 'Session\DisableAutoTMMByDefault'
+    value: 'false'
+  - section: BitTorrent                       # stop seeding once upload/download ratio reaches 1:1
+    option: 'Session\GlobalMaxRatio'
+    value: '1'
+  - section: BitTorrent                       # stop seeding after 1 day (whichever limit is hit first)
+    option: 'Session\GlobalMaxSeedingMinutes'
+    value: '1440'
+  - section: BitTorrent                       # 0 = Stop torrent; Radarr/Sonarr then deletes it on cleanup
+    option: 'Session\MaxRatioAction'
+    value: '0'
+  - section: BitTorrent                       # bind to the gluetun VPN interface
+    option: 'Session\Interface'
+    value: 'tun0'
+  - section: BitTorrent
+    option: 'Session\InterfaceName'
+    value: 'tun0'
+  - section: BitTorrent                       # all IPv4; avoids IPv6 "Operation not permitted" (gluetun blocks IPv6)
+    option: 'Session\InterfaceAddress'
+    value: '0.0.0.0'
