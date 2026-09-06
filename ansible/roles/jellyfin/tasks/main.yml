@@ -40,11 +40,14 @@
     - { src: jellyfin-series.mblink.j2, dest: Series/media.mblink }
   notify: Restart jellyfin
 
+# preserve timestamps so touch only reports changed (and restarts jellyfin) on creation
 - name: Set library collection types
   ansible.builtin.file:
     path: "/mnt/nvme/services/jellyfin/config/root/default/{{ item }}"
     state: touch
     mode: '0644'
+    modification_time: preserve
+    access_time: preserve
   loop:
     - Movies/movies.collection
     - Series/tvshows.collection

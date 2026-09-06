@@ -8,6 +8,7 @@
         name: "{{ item }}"
       loop: "{{ host_roles | default([]) }}"
   # Generic handlers shared by all roles. Service-specific restart handlers
+  # live in each role's handlers/main.yml.
   handlers:
     - name: Reload ufw
       community.general.ufw:

@@ -1,8 +1,7 @@
 ---
 - name: Restart hdd-spindown
-  become: true
   ansible.builtin.systemd:
     name: hdd-spindown.service
     state: restarted
     daemon_reload: true
-  when: (hdd_spindown_enabled | default(false)) | bool
+  when: hdd_spindown_enabled | bool

@@ -1,4 +1,5 @@
 ---
+hdd_spindown_enabled: false
 hdd_spindown_interval: 300
 hdd_spindown_syslog: 0
 hdd_spindown_readlen: 128
