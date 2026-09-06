@@ -16,21 +16,25 @@
   no_log: true
 
 # --- Shares ---
+# NOTE: write access also needs matching filesystem permissions. /mnt/storage/data
+# is owned by the SMB user (zfs role). /mnt/nvme/media is owned by
+# media_puid/media_pgid, so [Media] forces writes to run as media_username —
+# files created over SMB land with the ownership the media containers expect.
 - name: Add shares to smb.conf
   ansible.builtin.blockinfile:
     path: /etc/samba/smb.conf
     block: |
       [Storage]
       path = /mnt/storage/data
-      read-only = no
       browsable = yes
       writeable = yes
       [Media]
       path = /mnt/nvme/media
-      read-only = no
       browsable = yes
       writeable = yes
+      force user = {{ media_username }}
     marker: "# {mark} ANSIBLE MANAGED - storage share"
+    validate: testparm -s %s
   notify: Restart smbd
 
 # --- Firewall ---

@@ -45,6 +45,9 @@ zfs_disk2_partuuid: "CHANGE_ME"
 # must run as the same uid/gid and that uid/gid must own the media tree on the host.
 media_puid: 1000
 media_pgid: 1000
+# Host account that owns media_puid/media_pgid; SMB writes to [Media] are forced
+# to this user so files land with the ownership the containers expect.
+media_username: "CHANGE_ME"
 
 # Services
 base_url: "http://CHANGE_ME"
@@ -70,8 +73,6 @@ service_ports:
   radarr: 7878
   sonarr: 8989
   seerr: 5055
-  profilarr: 6868
-  bazarr: 6767
   immich: 2283
 
 # Prowlarr indexers to provision.

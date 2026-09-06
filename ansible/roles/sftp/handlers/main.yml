@@ -1,5 +1,5 @@
 ---
 - name: Restart sshd
   ansible.builtin.service:
-    name: sshd
+    name: ssh   # Debian's canonical unit; the "sshd" alias only exists while the unit is enabled
     state: restarted

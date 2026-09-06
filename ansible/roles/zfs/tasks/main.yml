@@ -1,5 +1,7 @@
 ---
 # --- User ---
+# The dataset chown below needs the SMB user to exist. The smb role creates the
+# same user for hosts that run it; re-running the task here is harmless.
 - name: Add SMB user if not present
   ansible.builtin.user:
     name: "{{ smb_username }}"
@@ -38,6 +40,6 @@
 - name: Set permissions for zfs dataset
   ansible.builtin.file:
     path: /mnt/storage/data
-    owner: nas
-    group: nas
+    owner: "{{ smb_username }}"
+    group: "{{ smb_username }}"
     mode: '0755'
